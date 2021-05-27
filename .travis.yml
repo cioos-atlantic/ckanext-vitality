@@ -8,6 +8,8 @@ services:
 install:
     - bash bin/travis-build.bash
     - pip install coveralls
+    - pip install future
+    - pip install six
 script: sh bin/travis-run.sh
 after_success:
     - coveralls
