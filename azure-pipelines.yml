@@ -26,4 +26,15 @@ steps:
     fi
     echo Copying new files
     sudo cp -r $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
-  displayName: 'Run a multi-line script'
+  displayName: 'Updating extension files'
+
+- script: |
+    sudo docker compose down 
+  continueOnError: true
+  displayName: 'Shutting down CKAN'
+
+- script: |
+    sudo docker compose -f $(docker_compose_path) up -d 
+  displayName: 'Restarting CKAN'  
+
+
