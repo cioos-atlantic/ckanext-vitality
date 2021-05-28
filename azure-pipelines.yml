@@ -29,12 +29,17 @@ steps:
   displayName: 'Updating extension files'
 
 - script: |
-    sudo docker-compose down 
+    #sudo docker-compose -f $(docker_compose_path) down 
+    echo skipping for now
   continueOnError: true
   displayName: 'Shutting down CKAN'
 
 - script: |
-    sudo docker-compose -f $(docker_compose_path) up -d 
+    #sudo docker-compose -f $(docker_compose_path) up -d 
+    echo skipping for now
   displayName: 'Restarting CKAN'  
+  env:
+    DATASTORE_READONLY_PASSWORD: $(datastore_readonly_password)
+    POSTGRES_PASSWORD: $(postgres_password)
 
 
