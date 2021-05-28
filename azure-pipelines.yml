@@ -10,10 +10,11 @@ pool: Default
 
 steps:
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-    echo $(Agent.BuildDirectory)
+
+    echo Cloned repo into $(Agent.BuildDirectory)/s/
+    echo Repo contents:
     ls $(Agent.BuildDirectory)/s/
+    
     # If the extension folder does not exist create it.
     if [ ! -d $(CKANEXTS_PATH)$(EXT_NAME) ]
     then
@@ -24,5 +25,5 @@ steps:
       rm -r $(ckanexts_path)$(ext_name)/*
     fi
     echo Copying new files
-    sudo cp $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
+    sudo cp -r $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
   displayName: 'Run a multi-line script'
