@@ -17,10 +17,12 @@ steps:
     # If the extension folder does not exist create it.
     if [ ! -d $(CKANEXTS_PATH)$(EXT_NAME) ]
     then
-      echo Folder does not exist
-      mkdir $(ckanexts_path)$(ext_name)
+      echo Extension folder does not exist, creating it now.
+      sudo mkdir $(ckanexts_path)$(ext_name)
     else
-      echo Folder exists!
+      echo Extension folder exists, clearing old contents!
+      rm -r $(ckanexts_path)$(ext_name)/*
     fi
-    cp $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
+    echo Copying new files
+    sudo cp $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
   displayName: 'Run a multi-line script'
