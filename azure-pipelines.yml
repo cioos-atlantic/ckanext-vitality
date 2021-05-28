@@ -17,7 +17,10 @@ steps:
     # If the extension folder does not exist create it.
     if [! -d "$(ckanexts_path)$(ext_name)"]
     then
+      echo Folder does not exist
       mkdir $(ckanexts_path)$(ext_name)
+    else
+      echo Folder exists!
     fi
     cp $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
   displayName: 'Run a multi-line script'
