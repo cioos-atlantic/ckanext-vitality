@@ -35,11 +35,13 @@ steps:
   displayName: 'Shutting down CKAN'
 
 - script: |
-    sudo docker-compose -f $(docker_compose_path) up -d 
+    cd $(docker_path)
+    sudo docker-compose up -d 
     echo skipping for now
   displayName: 'Restarting CKAN'  
   env:
     DATASTORE_READONLY_PASSWORD: $(datastore_readonly_password)
     POSTGRES_PASSWORD: $(postgres_password)
+    
 
 
