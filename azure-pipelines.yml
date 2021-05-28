@@ -29,12 +29,12 @@ steps:
   displayName: 'Updating extension files'
 
 - script: |
-    sudo docker compose down 
+    sudo docker-compose down 
   continueOnError: true
   displayName: 'Shutting down CKAN'
 
 - script: |
-    sudo docker compose -f $(docker_compose_path) up -d 
+    sudo docker-compose -f $(docker_compose_path) up -d 
   displayName: 'Restarting CKAN'  
 
 
