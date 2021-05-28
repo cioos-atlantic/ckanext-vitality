@@ -29,15 +29,14 @@ steps:
   displayName: 'Updating extension files'
 
 - script: |
+    cd $(docker_path)
     sudo docker-compose -f $(docker_compose_path) down 
-    echo skipping for now
-  continueOnError: true
+  continueOnError: true # In the case where CKAN wasn't up to begin with
   displayName: 'Shutting down CKAN'
 
 - script: |
     cd $(docker_path)
     sudo docker-compose up -d 
-    echo skipping for now
   displayName: 'Restarting CKAN'  
   env:
     DATASTORE_READONLY_PASSWORD: $(datastore_readonly_password)
