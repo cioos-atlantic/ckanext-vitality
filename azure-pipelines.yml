@@ -15,7 +15,7 @@ steps:
     echo $(Agent.BuildDirectory)
     ls $(Agent.BuildDirectory)/s/
     # If the extension folder does not exist create it.
-    if [! -d "$(CKANEXTS_PATH)$(EXT_NAME)"]
+    if [ -d "$(CKANEXTS_PATH)$(EXT_NAME)"]
     then
       echo Folder does not exist
       mkdir $(ckanexts_path)$(ext_name)
