@@ -30,7 +30,7 @@ steps:
 
 - script: |
     cd $(docker_path)
-    sudo docker-compose -f $(docker_compose_path) down 
+    sudo docker-compose down 
   continueOnError: true # In the case where CKAN wasn't up to begin with
   displayName: 'Shutting down CKAN'
 
