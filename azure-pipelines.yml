@@ -26,6 +26,10 @@ steps:
     fi
     echo Copying new files
     sudo cp -r $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
+
+    echo "Installing plugin into CKAN venv"
+    sudo docker exec ckan /bin/bash -c "source $(docker_venv_path) && cd $(docker_exts_path)ckanext-vitality_prototype/ && python setup.py develop"
+
   displayName: 'Updating extension files'
 
 - script: |
