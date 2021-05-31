@@ -34,6 +34,15 @@ steps:
   displayName: 'Updating extension files'
 
 - script: |
+
+    echo "Re-indexing datasets..."
+    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckan search-index rebuild --config=/etc/ckan/production.ini
+
+    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-harvest harvester reindex --config=/etc/ckan/production.ini
+
+  displayName: 'Re-Indexing Datasets'
+
+- script: |
     cd $(docker_path)
     sudo docker-compose down 
   continueOnError: true # In the case where CKAN wasn't up to begin with
