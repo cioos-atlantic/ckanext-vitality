@@ -26,7 +26,7 @@ steps:
     fi
     echo Copying new files
     sudo cp -r $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
-    sudo chown -R devops-agent $(ckanexts_path)$(ext_name)
+    sudo chmod 777 -R $(ckanexts_path)$(ext_name)
 
     echo "Installing plugin into CKAN venv"
     sudo docker exec ckan /bin/bash -c "source $(docker_venv_path) && cd $(docker_exts_path)ckanext-vitality_prototype/ && python setup.py develop"
