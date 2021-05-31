@@ -22,7 +22,7 @@ steps:
       sudo mkdir $(ckanexts_path)$(ext_name)
     else
       echo Extension folder exists, clearing old contents!
-      rm -r $(ckanexts_path)$(ext_name)/*
+      sudo rm -r $(ckanexts_path)$(ext_name)/*
     fi
     echo Copying new files
     sudo cp -r $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
