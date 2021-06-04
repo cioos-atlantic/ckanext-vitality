@@ -26,10 +26,14 @@ steps:
     fi
     echo Copying new files
     sudo cp -r $(Agent.BuildDirectory)/s/* $(ckanexts_path)$(ext_name)
-    sudo chmod 755 -R $(ckanexts_path)$(ext_name)
+    echo "Changing to 777 permisssions for the plugin folder for copy operation"
+    sudo chmod 777 -R $(ckanexts_path)$(ext_name)
 
     echo "Installing plugin into CKAN venv"
     sudo docker exec ckan /bin/bash -c "source $(docker_venv_path) && cd $(docker_exts_path)ckanext-vitality_prototype/ && python setup.py develop"
+
+    echo "Returning to 755 permissions for the plugin folder" 
+    sudo chmod 755 -R $(ckanexts_path)$(ext_name)
 
   displayName: 'Updating extension files'
 
