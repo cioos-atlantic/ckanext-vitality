@@ -46,7 +46,14 @@ steps:
   env:
     DATASTORE_READONLY_PASSWORD: $(datastore_readonly_password)
     POSTGRES_PASSWORD: $(postgres_password)
-    
+
+- script: |
+
+    echo "Seeding users into metadata authorization model"
+    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed_users --config=/etc/ckan/production.ini
+
+  displayName: 'Seeding Users into Vitality'
+
 - script: |
 
     echo "Re-indexing datasets..."

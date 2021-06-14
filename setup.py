@@ -80,7 +80,10 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points='''
         [ckan.plugins]
-        vitality_prototype=ckanext.vitality_prototype.plugin:Vitality_PrototypePlugin
+            vitality_prototype=ckanext.vitality_prototype.plugin:Vitality_PrototypePlugin
+
+        [paste.paster_command]
+            vitality = ckanext.vitality_prototype.commands.vitality_model:VitalityModel
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan

@@ -1,12 +1,12 @@
 import logging
 import uuid
 import copy
-import pickle
 
 
 
 from ckanext.vitality_prototype.impl.simple_meta_auth import SimpleMetaAuth
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
+
 
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
@@ -20,6 +20,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
 
+
     # Graph Database
     #graph = Graph("bolt://192.168.2.18:7687", "neo4j", "password")
 
@@ -29,6 +30,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # IConfigurer
 
     def update_config(self, config_):
+
         toolkit.add_template_directory(config_, 'templates')
         toolkit.add_public_directory(config_, 'public')
         toolkit.add_resource('fanstatic', 'vitality_prototype')
@@ -98,14 +100,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
 
-        self.meta_authorize.set_visible_fields(
-            dataset_id,
-            admin_id,
-            generate_whitelist(
-                self.meta_authorize.get_metadata_fields(pkg_dict["id"])
+        # Set visible fields for all users in the authorization model.
+        for user in self.meta_authorize.get_users():
+            self.meta_authorize.set_visible_fields(
+                dataset_id,
+                user,
+                generate_whitelist(
+                    self.meta_authorize.get_metadata_fields(pkg_dict["id"])
+                    )
                 )
-            )
 
+        # Set visible fields for the public/not-logged in users
         self.meta_authorize.set_visible_fields(
             dataset_id,
             'public',

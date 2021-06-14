@@ -41,8 +41,7 @@ ckanext-vitality_prototype
 Requirements
 ------------
 
-For example, you might want to mention here which versions of CKAN this
-extension works with.
+Developed for the [CIOOS CKAN fork](https://github.com/cioos-siooc/ckan).
 
 
 ------------
@@ -70,6 +69,10 @@ To install ckanext-vitality_prototype:
 4. Restart CKAN. For example if you've deployed CKAN with Apache on Ubuntu::
 
      sudo service apache2 reload
+
+5. Seed the CKAN users into the metadata authorization model
+
+    docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed_users --config=/etc/ckan/production.ini
 
 
 ---------------

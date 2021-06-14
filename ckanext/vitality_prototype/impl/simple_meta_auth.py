@@ -22,6 +22,20 @@ class SimpleMetaAuth(MetaAuthorize):
     ledger = {}
 
 
+    '''
+    A list of all known users
+    '''
+    users = []
+
+    def add_user(self, user_id):
+        log.info("Adding user " + str(user_id))
+        log.info("Authorization model has " + str(len(self.users)) + " users")
+        if user_id not in self.users:
+            self.users.append(user_id)
+        self.save()
+    
+    def get_users(self):
+        return self.users
 
     def get_metadata_fields(self, dataset_id):
         log.info("dataset roster size: " + str(len(self.dataset_fields)))
@@ -56,6 +70,11 @@ class SimpleMetaAuth(MetaAuthorize):
         f_ledger.flush()
         f_ledger.close()
 
+        f_users = open("simple_auth_model_users.json", "wb")
+        json.dump(self.users,f_users)
+        f_users.flush()
+        f_users.close()
+
     def load(self):
 
         if path.exists("simple_auth_model_datasets.json"):
@@ -67,4 +86,10 @@ class SimpleMetaAuth(MetaAuthorize):
             f_ledger = open("simple_auth_model_ledger.json", "rb")
             self.ledger = json.load(f_ledger)
             f_ledger.close()
+
+        if path.exists("simple_auth_model_users.json"):
+            f_users = open("simple_auth_model_users.json", "rb")
+            self.users = json.load(f_users)
+            f_users.close()
+
 

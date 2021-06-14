@@ -6,6 +6,18 @@ class MetaAuthorize(object):
 
 
     '''
+    Add a user to the authorization model
+    '''
+    def add_user(self, user_id):
+        raise NotImplementedError("Class %s doesn't implement add_user(self, user_id)" % (self.__class__.__name__))
+
+    '''
+    Get users in the authorization model
+    '''
+    def get_users(self):
+        raise NotImplementedError("Class %s doesn't implement get_users(self)" % (self.__class__.__name__))
+
+    '''
     Add a dataset to the metadata authorization model
     '''
     def add_dataset(self, dataset_id, fields):
