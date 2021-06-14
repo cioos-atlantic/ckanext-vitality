@@ -13,16 +13,11 @@ import ckan.plugins.toolkit as toolkit
 
 log = logging.getLogger(__name__)
 
-admin_id = "04959919-88c0-4baf-9005-99afc423fc57"
-
 
 class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
 
-
-    # Graph Database
-    #graph = Graph("bolt://192.168.2.18:7687", "neo4j", "password")
 
     # Authorization Interface
     meta_authorize = SimpleMetaAuth()
@@ -69,7 +64,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
-    
 
     def after_search(self, search_results, search_params):
 

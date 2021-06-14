@@ -41,7 +41,7 @@ ckanext-vitality_prototype
 Requirements
 ------------
 
-Developed for the [CIOOS CKAN fork](https://github.com/cioos-siooc/ckan).
+Developed for the CIOOS CKAN fork (https://github.com/cioos-siooc/ckan).
 
 
 ------------
