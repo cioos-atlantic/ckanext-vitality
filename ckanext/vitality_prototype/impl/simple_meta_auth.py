@@ -23,9 +23,37 @@ class SimpleMetaAuth(MetaAuthorize):
 
 
     '''
-    A list of all known users
+    A list of all known user ids
     '''
     users = []
+
+    '''
+    A list of all known group ids
+    '''
+    groups = []
+
+    '''
+    A list of all known org ids
+    '''
+    orgs = []
+
+    '''
+    NOTE: Groups and Orgs don't do anything in Simple Meta Auth, they're not even persisted.
+    '''
+
+    def add_group(self, group_id):
+        if group_id not in self.groups:
+            self.groups.append(group_id)
+
+    def get_groups(self):
+        return self.groups
+
+    def add_org(self, org_id):
+        if org_id not in self.orgs:
+            self.orgs.append(org_id)
+    
+    def get_orgs(self):
+        return self.orgs
 
     def add_user(self, user_id):
         log.info("Adding user " + str(user_id))

@@ -6,13 +6,37 @@ class MetaAuthorize(object):
 
 
     '''
+    Add an organization to the authorization model
+    '''
+    def add_org(self, org_id):
+        raise NotImplementedError("Class %s doesn't implement add_org(self, org_id)" % (self.__class__.__name__))
+
+    '''
+    Get organizations in the authorization model. Returns a list of org ids.
+    '''
+    def get_orgs(self):
+        raise NotImplementedError("Class %s doesn't implement get_orgs(self)" % (self.__class__.__name__))
+
+    '''
+    Add a group to the authorization model
+    '''
+    def add_group(self, group_id):
+        raise NotImplementedError("Class %s doesn't implement add_group(self, group_id)" % (self.__class__.__name__))
+
+    '''
+    Get groups in the authorization model. Returns a list of group ids.
+    '''
+    def get_groups(self):
+        raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.name))
+
+    '''
     Add a user to the authorization model
     '''
     def add_user(self, user_id):
         raise NotImplementedError("Class %s doesn't implement add_user(self, user_id)" % (self.__class__.__name__))
 
     '''
-    Get users in the authorization model
+    Get users in the authorization model. Returns a list of user ids.
     '''
     def get_users(self):
         raise NotImplementedError("Class %s doesn't implement get_users(self)" % (self.__class__.__name__))
@@ -32,7 +56,7 @@ class MetaAuthorize(object):
 
     '''
     Return the subset of metadata field ids in this dataset
-    for which the given user has read access.
+    for which the given user has read access. Should be a list of ids.
     '''
     def get_visible_fields(self, dataset_id, user_id):
         raise NotImplementedError("Class %s doesn't implement get_visible_fields(self, dataset_id, user_id)")
@@ -65,7 +89,7 @@ class MetaAuthorize(object):
         # Iterate through the dictionary entries
         for key,value in input.items():
 
-            log.info("Checking authorization for " + str(key))
+            log.info("Checking authorization for %s", str(key))
 
             # TODO - this needs to be handled way better
             if key == "en" or key == "fr":

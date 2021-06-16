@@ -1,7 +1,8 @@
-from ckanext.vitality_prototype.impl.simple_meta_auth import SimpleMetaAuth
+from ckanext.vitality_prototype.impl.graph_meta_auth import GraphMetaAuth
 import sys
 
 from ckan import model
+from ckan.common import config
 from ckan.logic import get_action
 
 from ckantoolkit import CkanCommand
@@ -20,13 +21,20 @@ class VitalityModel(CkanCommand):
     usage = __doc__
 
     # Authorization Interface
-    meta_authorize = SimpleMetaAuth()
+    meta_authorize = None
 
     def __init__(self, name):
         super(VitalityModel, self).__init__(name)
 
     def command(self):
         self._load_config()
+
+        # Load neo4j connection parameters from config
+        neo4j_host = config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687")
+        neo4j_user = config.get('ckan.vitality.neo4j.user', "neo4j")
+        neo4j_pass = config.get('ckan.vitality.neo4j.password', "password")
+        # Initalizse meta_authorize
+        self.meta_authorize = GraphMetaAuth(neo4j_host, neo4j_user, neo4j_pass)
 
         # We'll need a sysadmin user to perform most of the actions
         # We will use the sysadmin site user (named as the site_id)
@@ -59,6 +67,9 @@ class VitalityModel(CkanCommand):
         for u in user_list:
             print(u)
             self.meta_authorize.add_user(u['id'].decode('utf-8'))
+
+        # Create the public user for people not logged in.
+        self.meta_authorize.add_user('public')
 
 
     def _load_config(self):

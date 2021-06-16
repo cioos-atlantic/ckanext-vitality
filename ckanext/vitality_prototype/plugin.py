@@ -1,8 +1,7 @@
+from ckanext.vitality_prototype.impl.graph_meta_auth import GraphMetaAuth
 import logging
 import uuid
 import copy
-
-
 
 from ckanext.vitality_prototype.impl.simple_meta_auth import SimpleMetaAuth
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
@@ -10,6 +9,7 @@ from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
+from ckan.common import config
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
 
     # Authorization Interface
-    meta_authorize = SimpleMetaAuth()
+    meta_authorize = None
 
     # IConfigurer
 
@@ -30,8 +30,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         toolkit.add_public_directory(config_, 'public')
         toolkit.add_resource('fanstatic', 'vitality_prototype')
 
-        self.meta_authorize.load()
-
+        #self.meta_authorize.load()
+        # Load neo4j connection parameters from config
+        neo4j_host = config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687")
+        neo4j_user = config.get('ckan.vitality.neo4j.user', "neo4j")
+        neo4j_pass = config.get('ckan.vitality.neo4j.password', "password")
+        # Initalizse meta_authorize
+        self.meta_authorize = GraphMetaAuth(neo4j_host, neo4j_user, neo4j_pass)
 
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
@@ -96,6 +101,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Set visible fields for all users in the authorization model.
         for user in self.meta_authorize.get_users():
+            # Skip public user, we handle that as a special case after.
+            if user == 'public':
+                continue
+
             self.meta_authorize.set_visible_fields(
                 dataset_id,
                 user,
