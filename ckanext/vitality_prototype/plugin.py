@@ -7,6 +7,7 @@ from ckanext.vitality_prototype.impl.simple_meta_auth import SimpleMetaAuth
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 
 
+import ckan
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 from ckan.common import config
@@ -43,7 +44,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
         log.info("Context")
         log.info(context)
-        
+
         # Skip during indexing
         if context['user'].encode('utf-8') == 'default':
             return
@@ -93,9 +94,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
-        #admin user id: 04959919-88c0-4baf-9005-99afc423fc57
-        #test dataset id: 986ce776-e6d7-484d-9b7c-3449a7368649
-        self.meta_authorize.add_dataset(dataset_id, generate_default_fields())
+        self.meta_authorize.add_dataset(dataset_id, generate_default_fields(), pkg_dict['owner_org'])
 
         log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
 

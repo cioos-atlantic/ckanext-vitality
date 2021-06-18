@@ -50,9 +50,9 @@ steps:
 - script: |
 
     echo "Seeding users into metadata authorization model"
-    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed_users --config=/etc/ckan/production.ini
+    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed --config=/etc/ckan/production.ini
 
-  displayName: 'Seeding Users into Vitality'
+  displayName: 'Seeding Authorization Model'
 
 - script: |
 

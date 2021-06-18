@@ -44,8 +44,8 @@ class MetaAuthorize(object):
     '''
     Add a dataset to the metadata authorization model
     '''
-    def add_dataset(self, dataset_id, fields):
-        raise NotImplementedError("Class %s doesn't implement add_dataset(self, dataset_id, fields)" % (self.__class__.__name__))
+    def add_dataset(self, dataset_id, fields, owner_id):
+        raise NotImplementedError("Class %s doesn't implement add_dataset(self, dataset_id, fields, owner_id)" % (self.__class__.__name__))
 
     '''
     Return a map of metadata fields with their UUID's for a particular dataset.
