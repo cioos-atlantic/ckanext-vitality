@@ -49,14 +49,12 @@ steps:
     POSTGRES_PASSWORD: $(postgres_password)
 
 - script: |
-
     echo "Seeding users into metadata authorization model"
     sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed --config=/etc/ckan/production.ini
 
   displayName: 'Seeding Authorization Model'
 
 - script: |
-
     echo "Re-indexing datasets..."
     sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckan search-index rebuild --config=/etc/ckan/production.ini
 
