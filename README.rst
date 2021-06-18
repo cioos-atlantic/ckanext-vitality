@@ -78,9 +78,7 @@ To install ckanext-vitality_prototype:
 
      docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed --config=/etc/ckan/production.ini
 
-7. Re-index the datasets in your CKAN instance::
-
-    This will add them to the authorization model
+7. Re-index the datasets in your CKAN instance, this will add them to the authorization model::
 
      docker exec ckan /usr/local/bin/ckan-paster --plugin=ckan search-index rebuild --config=/etc/ckan/production.ini
 
