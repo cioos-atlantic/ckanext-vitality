@@ -74,11 +74,17 @@ To install ckanext-vitality_prototype:
 
      docker run -d -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=none neo4j:3.5.8
 
-6. Seed the CKAN users into the metadata authorization model::
+6. Add the following to the production.ini file::
+
+    ckan.vitality.neo4j.host=bolt://localhost:7687
+    ckan.vitality.neo4j.user=neo4j
+    ckan.vitality.neo4j.password=neo4j
+
+7. Seed the CKAN users into the metadata authorization model::
 
      docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed --config=/etc/ckan/production.ini
 
-7. Re-index the datasets in your CKAN instance, this will add them to the authorization model::
+8. Re-index the datasets in your CKAN instance, this will add them to the authorization model::
 
      docker exec ckan /usr/local/bin/ckan-paster --plugin=ckan search-index rebuild --config=/etc/ckan/production.ini
 
