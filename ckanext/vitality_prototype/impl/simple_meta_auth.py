@@ -1,8 +1,6 @@
-import pickle
 import json
 import logging
-import os.path
-from os import path
+import os
 
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 
@@ -79,7 +77,6 @@ class SimpleMetaAuth(MetaAuthorize):
         self.dataset_fields[dataset_id] = fields
         self.save()
 
-
     def set_visible_fields(self, dataset_id, user_id, whitelist):
         # Create the dataset entry if it does not exist
         if dataset_id  not in self.ledger:
@@ -105,19 +102,17 @@ class SimpleMetaAuth(MetaAuthorize):
 
     def load(self):
 
-        if path.exists("simple_auth_model_datasets.json"):
+        if os.path.exists("simple_auth_model_datasets.json"):
             f_dataset = open("simple_auth_model_datasets.json","rb")
             self.dataset_fields = json.load(f_dataset)
             f_dataset.close()
 
-        if path.exists("simple_auth_model_ledger.json"):
+        if os.path.exists("simple_auth_model_ledger.json"):
             f_ledger = open("simple_auth_model_ledger.json", "rb")
             self.ledger = json.load(f_ledger)
             f_ledger.close()
 
-        if path.exists("simple_auth_model_users.json"):
+        if os.path.exists("simple_auth_model_users.json"):
             f_users = open("simple_auth_model_users.json", "rb")
             self.users = json.load(f_users)
             f_users.close()
-
-

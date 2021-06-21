@@ -7,10 +7,11 @@ import uuid
 log = logging.getLogger(__name__)
 
 class GraphMetaAuth(MetaAuthorize):
+    """ Graph database authorization settings.
+    """
 
     def __init__(self, uri, user, password):
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
-
         
     def close(self):
         self.driver.close()
@@ -62,8 +63,6 @@ class GraphMetaAuth(MetaAuthorize):
             # create the fields as well
             for name,id in fields.items():
                 session.write_transaction(self._write_metadata_field, name, id, dataset_id)
-                
-
 
     def get_metadata_fields(self, dataset_id):
         with self.driver.session() as session:
@@ -77,10 +76,8 @@ class GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self._write_visible_fields, dataset_id, user_id, whitelist)
 
-
     @staticmethod
-    def _write_visible_fields(tx, dataset_id, user_id, whitelist):
-        
+    def _write_visible_fields(tx, dataset_id, user_id, whitelist):      
         for name,id in whitelist.items():
             result = tx.run("MATCH (e:element {id:'"+id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:can_see]->(e)")
         return
@@ -93,7 +90,6 @@ class GraphMetaAuth(MetaAuthorize):
     @staticmethod
     def _write_metadata_field(tx, name, id, dataset_id):
         result = tx.run("MATCH (d:dataset {id:'"+dataset_id+"'}) CREATE (d)-[:has]->(:element {name:'"+name+"',id:'"+id+"'})")
-
         return
 
     @staticmethod
@@ -128,38 +124,30 @@ class GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def _get_org(tx, id):
-        records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id as id")
-        
+        records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id as id")      
         for record in records:
-            return record['id']
-        
+            return record['id']    
         return None
 
     @staticmethod 
     def _get_user(tx, id):
-        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id")
-        
+        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id")   
         for record in records:
             return record['id']
-
         return None
     
     @staticmethod
     def _get_group(tx, id):
-        records = tx.run("MATCH (g:group {id:'"+id+"'}) return g.id as id")
-        
+        records = tx.run("MATCH (g:group {id:'"+id+"'}) return g.id as id")   
         for record in records:
             return record['id']
-
         return None
 
     @staticmethod
     def _get_dataset(tx, id):
         records = tx.run("MATCH (d:dataset {id:'"+id+"'}) return d.id as id")
-        
         for record in records:
             return record['id']
-        
         return None
 
     @staticmethod
@@ -184,10 +172,7 @@ class GraphMetaAuth(MetaAuthorize):
         for record in tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has]->(e:element) RETURN e.name AS name, e.id AS id"):
             #log.debug("record: %s", str(record))
             result[record['name']] = record['id']
-        
         return result
-
-    
 
 if __name__ == "__main__":
     greeter = GraphMetaAuth("bolt://localhost:7687", "neo4j", "password")

@@ -16,6 +16,22 @@ log = logging.getLogger(__name__)
 
 
 class Vitality_PrototypePlugin(plugins.SingletonPlugin):
+    """ 
+    A CKAN plugin for creating a data registry.
+
+    ...
+
+    Attributes
+    ----------
+    meta_authorize : GraphMetaAuth
+        Ckan authorization object.
+
+    Methods
+    -------
+    (Include list of public methods here.)
+        
+    """
+
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
 
@@ -26,6 +42,16 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # IConfigurer
 
     def update_config(self, config_):
+        """Updates the CKAN configuration based on config_ via meta_authorize parameter.
+
+        Parameters
+        ----------
+        config_ : config object
+        
+        Returns
+        -------
+        None
+        """
 
         toolkit.add_template_directory(config_, 'templates')
         toolkit.add_public_directory(config_, 'public')
@@ -151,11 +177,10 @@ def print_expanded(pkg_dict, key_name=None, depth=None):
         log.error(str(ex))
 
 
-'''
-UTILITY:
-Returns a string with 'num' many tabs.
-'''
+
 def compute_tabs(num):
+    """ Returns a string with `num` tabs
+    """
 
     result = ""
     count = num
@@ -170,6 +195,9 @@ UTILITY:
 Returns a deep copy of a set of fields, which can then be used as a user's visibility entries 
 '''
 def generate_whitelist(fields):
+    """ Returns a deep copy of a set of fields to use as user's visible entries.
+    """
+
     return copy.deepcopy(fields)
 
 def default_public_fields(fields):
@@ -191,11 +219,10 @@ def default_public_fields(fields):
 
     return result
 
-'''
-UTILITY:
-Hard-coded fields for all datasets
-'''
+
 def generate_default_fields():
+    """ Hard-coded fields for each dataset.
+    """
 
     field_names = [
         "notes_translated",

@@ -29,8 +29,10 @@ steps:
     sudo chmod 777 -R $(ckanexts_path)$(ext_name)
 
     echo "Installing plugin into CKAN venv"
-    sudo docker exec ckan /bin/bash -c "source $(docker_venv_path) && cd $(docker_exts_path)ckanext-vitality_prototype/ && pip install -r requirements.txt"
-    sudo docker exec ckan /bin/bash -c "source $(docker_venv_path) && cd $(docker_exts_path)ckanext-vitality_prototype/ && python setup.py develop"
+    sudo docker exec ckan /bin/bash -c "source $(docker_venv_path) && \
+      cd $(docker_exts_path)ckanext-vitality_prototype/ && pip install -r requirements.txt"
+    sudo docker exec ckan /bin/bash -c "source $(docker_venv_path) && \
+      cd $(docker_exts_path)ckanext-vitality_prototype/ && python setup.py develop"
 
   displayName: 'Updating extension files'
 
@@ -50,15 +52,18 @@ steps:
 
 - script: |
     echo "Seeding users into metadata authorization model"
-    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype vitality seed --config=/etc/ckan/production.ini
+    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-vitality_prototype \
+      vitality seed --config=/etc/ckan/production.ini
 
   displayName: 'Seeding Authorization Model'
 
 - script: |
     echo "Re-indexing datasets..."
-    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckan search-index rebuild --config=/etc/ckan/production.ini
+    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckan search-index \
+      rebuild --config=/etc/ckan/production.ini
 
-    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-harvest harvester reindex --config=/etc/ckan/production.ini
+    sudo docker exec ckan /usr/local/bin/ckan-paster --plugin=ckanext-harvest harvester \
+      reindex --config=/etc/ckan/production.ini
 
   displayName: 'Re-Indexing Datasets'
 

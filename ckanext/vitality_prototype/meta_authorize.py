@@ -3,82 +3,122 @@ import logging
 log = logging.getLogger(__name__)
 
 class MetaAuthorize(object):
+    """ 
+    An authorization tool for displaying metadata in CKAN
 
+    ...
 
-    '''
-    Add an organization to the authorization model
-    '''
+    Methods
+    ------- 
+    add_org(org_id)
+        Adds a organization org_id to the authorization model.
+
+    get_orgs()
+        Returns a list of organization ids.
+
+    add_group(group_id)
+        Adds a group to the authorization model.
+
+    get_groups()
+        Returns a list of group ids.
+
+    filter_dict(input, fields, whitelist)
+        Filters a dictionary input to conform to the model fields if the key is in whitelist.
+
+    Notes
+    -----
+    For information on the Organization, Groups and other traits, 
+    see the `CKAN documentation <https://docs.ckan.org>`
+
+    """
+
     def add_org(self, org_id):
+        """ 
+        Add an organization to the authorization model with org_id.
+        """
+
         raise NotImplementedError("Class %s doesn't implement add_org(self, org_id)" % (self.__class__.__name__))
 
-    '''
-    Get organizations in the authorization model. Returns a list of org ids.
-    '''
     def get_orgs(self):
+        """
+        Returns a list of org_ids.
+        """
         raise NotImplementedError("Class %s doesn't implement get_orgs(self)" % (self.__class__.__name__))
 
-    '''
-    Add a group to the authorization model
-    '''
     def add_group(self, group_id):
+        """
+        Add a group to the authorization model with group_id.
+        """
+
         raise NotImplementedError("Class %s doesn't implement add_group(self, group_id)" % (self.__class__.__name__))
 
-    '''
-    Get groups in the authorization model. Returns a list of group ids.
-    '''
     def get_groups(self):
+        """
+        Returns a list of group ids from authorization model.
+        """
         raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.name))
 
-    '''
-    Add a user to the authorization model
-    '''
     def add_user(self, user_id):
+        """
+        Add a user to the authorization model with the user_id.
+        """
+
         raise NotImplementedError("Class %s doesn't implement add_user(self, user_id)" % (self.__class__.__name__))
 
-    '''
-    Get users in the authorization model. Returns a list of user ids.
-    '''
     def get_users(self):
+        """
+        Get a list of user_id s based on the current authorization model.
+        """
+
         raise NotImplementedError("Class %s doesn't implement get_users(self)" % (self.__class__.__name__))
 
-    '''
-    Add a dataset to the metadata authorization model
-    '''
     def add_dataset(self, dataset_id, fields, owner_id):
+        """
+        Add a dataset with the current id (dataset_id), fields and owner_id to the authorization model.
+        """
+
         raise NotImplementedError("Class %s doesn't implement add_dataset(self, dataset_id, fields, owner_id)" % (self.__class__.__name__))
 
-    '''
-    Return a map of metadata fields with their UUID's for a particular dataset.
-    '''
     def get_metadata_fields(self, dataset_id):
+        """
+        Return a dictionary of metadata fields based on the dataset_id
+        """
+
         raise NotImplementedError("Class %s doesn't implement get_metadata_fields(self, dataset_id)" % (self.__class__.__name__))
 
 
-    '''
-    Return the subset of metadata field ids in this dataset
-    for which the given user has read access. Should be a list of ids.
-    '''
     def get_visible_fields(self, dataset_id, user_id):
+        """
+        Return the subset of metadata field ids in this dataset for which the user has access.
+        """
+        
         raise NotImplementedError("Class %s doesn't implement get_visible_fields(self, dataset_id, user_id)")
 
 
-    '''
-    Sets the visible fields for a user and a particular dataset
-    '''
     def set_visible_fields(self, dataset_id, user_id, whitelist):
+        """
+        Set the visible fields for the particular user_id.
+        """
+
         raise NotImplementedError("Class %s doesn't implement set_visible_fields(self, dataset_id, user_id, whitelist)" % (self.__class__.__name__))
 
-
-    '''
-    Recursively filter a dictionary, returning only white-listed keys.
-    
-    input - the dictionary to filter
-    fields - a dictionary of fields and ids the dictionary contains
-    whitelist - a list of whitelisted ids, all other fields will be popped.
-
-    Returns the filtered input
-    '''
     def filter_dict(self, input, fields, whitelist):
+        """
+        Filter a dictionary, returning only white-listed keys.
+
+        Parameters
+        ----------
+        input : dict
+            The dictionary to filter.
+        fields: dict
+            Dictionary representing the fields and ids the dictionary should contain.
+        whitelist: list of uuids
+            The list of permitted field ids.
+
+        Returns
+        -------
+        the original dictionary input with fields corresponding to whitelist.      
+        """
 
         #log.info(fields)
 
@@ -87,6 +127,10 @@ class MetaAuthorize(object):
             raise TypeError("Only dicts can be filtered recursively! Attempted to filter " + str(type(input)))
 
         # Iterate through the dictionary entries
+
+        # TODO: I would use a comprehension + helper function.
+        #  i.e. {k: v for k, v in input.items if filterLogicFn(k, v)}
+        #  The original dictionary will stay in tact and in memory though.
         for key,value in input.items():
 
             log.info("Checking authorization for %s", str(key))

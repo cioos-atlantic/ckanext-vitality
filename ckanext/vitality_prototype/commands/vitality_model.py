@@ -1,35 +1,40 @@
 import logging
 import sys
 
+# CKAN interfacing imports
 from ckan import model
 from ckan.common import config
 from ckan.logic import get_action
-
 from ckantoolkit import CkanCommand
-
 from ckanext.vitality_prototype.impl.graph_meta_auth import GraphMetaAuth
 
 
 class VitalityModel(CkanCommand):
-    """Utility commands to manage the vitality metadata authorization model.
-
-    Usage: 
-
-        vitality seed_users
-            - Loads all users from CKAN into the authorization model + creates one 'public' user for anonymous access.
-
-        vitality seed_groups
-            - Loads all groups from CKAN into the authorization model
-
-        vitality seed_orgs
-            - Loads all organizations from CKAN into the authorization model
-        
-        vitality seed
-            - Loads users, groups, and organizations into the authorization model
     """
+    Utility commands to manage the vitality metadata authorization model.
 
-    summary = __doc__.split("\n")[0]
-    usage = __doc__
+    ...
+
+    Attributes
+    ----------
+    meta_authorize: GraphMetaAuth
+        Authorization information for Neo4J.
+
+    Methods
+    ------- 
+    seed_users(context)
+        Loads all users from CKAN into the authorization model and creates one 'public' user for anonymous access
+        using the provided context object.
+
+    seed_groups(context)
+        Loads all groups from CKAN into the authorization model using the provided context object.
+
+    seed_orgs(context)
+        Loads all organizations from CKAN into the authorization model using the provided context object.
+        
+    seed(context)
+        Loads users, groups, and organizations into the authorization model using the provided context object.
+    """
 
     # Authorization Interface
     meta_authorize = None
@@ -38,6 +43,9 @@ class VitalityModel(CkanCommand):
         super(VitalityModel, self).__init__(name)
 
     def command(self):
+        """
+        Ingests command line arguments 
+        """
         self._load_config()
 
         # Load neo4j connection parameters from config
