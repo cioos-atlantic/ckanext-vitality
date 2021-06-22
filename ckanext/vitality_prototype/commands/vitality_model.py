@@ -1,3 +1,4 @@
+from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
 import logging
 import sys
 
@@ -6,7 +7,9 @@ from ckan import model
 from ckan.common import config
 from ckan.logic import get_action
 from ckantoolkit import CkanCommand
-from ckanext.vitality_prototype.impl.graph_meta_auth import GraphMetaAuth
+
+CMD_ARG = 0
+MIN_ARGS = 1
 
 
 class VitalityModel(CkanCommand):
@@ -39,6 +42,10 @@ class VitalityModel(CkanCommand):
     # Authorization Interface
     meta_authorize = None
 
+    # Required by CKAN Commands
+    summary = __doc__.split("\n")[0]
+    usage = __doc__
+
     def __init__(self, name):
         super(VitalityModel, self).__init__(name)
 
@@ -49,11 +56,12 @@ class VitalityModel(CkanCommand):
         self._load_config()
 
         # Load neo4j connection parameters from config
-        neo4j_host = config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687")
-        neo4j_user = config.get('ckan.vitality.neo4j.user', "neo4j")
-        neo4j_pass = config.get('ckan.vitality.neo4j.password', "password")
-        # Initalizse meta_authorize
-        self.meta_authorize = GraphMetaAuth(neo4j_host, neo4j_user, neo4j_pass)
+        # Initalize meta_authorize
+        self.meta_authorize = MetaAuthorize.create(MetaAuthorizeType.GRAPH, {
+            'host': config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687"),
+            'user': config.get('ckan.vitality.neo4j.user', "neo4j"),
+            'password': config.get('ckan.vitality.neo4j.password', "password")
+        })
 
         # We'll need a sysadmin user to perform most of the actions
         # We will use the sysadmin site user (named as the site_id)
@@ -65,12 +73,12 @@ class VitalityModel(CkanCommand):
         }
         self.admin_user = get_action("get_site_user")(context, {})
 
-        if len(self.args) == 0:
+        if len(self.args) < MIN_ARGS:
             print("No args!")
             self.parser.print_usage()
             sys.exit(1)
 
-        cmd = self.args[0]
+        cmd = self.args[CMD_ARG]
         print("cmd: {}".format(cmd))
         
         if cmd == "seed_users":

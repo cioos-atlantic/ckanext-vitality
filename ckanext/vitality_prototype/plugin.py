@@ -1,10 +1,8 @@
-from ckanext.vitality_prototype.impl.graph_meta_auth import GraphMetaAuth
 import logging
 import uuid
 import copy
 
-from ckanext.vitality_prototype.impl.simple_meta_auth import SimpleMetaAuth
-from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
+from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
 
 
 import ckan
@@ -57,14 +55,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         toolkit.add_public_directory(config_, 'public')
         toolkit.add_resource('fanstatic', 'vitality_prototype')
 
-        #self.meta_authorize.load()
         # Load neo4j connection parameters from config
-        neo4j_host = config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687")
-        neo4j_user = config.get('ckan.vitality.neo4j.user', "neo4j")
-        neo4j_pass = config.get('ckan.vitality.neo4j.password', "password")
-        # Initalizse meta_authorize
-        self.meta_authorize = GraphMetaAuth(neo4j_host, neo4j_user, neo4j_pass)
-
+        # Initalize meta_authorize
+        self.meta_authorize = MetaAuthorize.create(MetaAuthorizeType.GRAPH, {
+            'host': config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687"),
+            'user': config.get('ckan.vitality.neo4j.user', "neo4j"),
+            'password': config.get('ckan.vitality.neo4j.password', "password")
+        })
+        
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
         

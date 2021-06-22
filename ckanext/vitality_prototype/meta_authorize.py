@@ -1,6 +1,17 @@
+from enum import Enum
 import logging
 
+
+'''
+Enumeration of MetaAuthorize implementations 
+'''
+class MetaAuthorizeType(Enum):
+    SIMPLE = 0 # JSON file based
+    GRAPH = 1 # Neo4J based
+
 log = logging.getLogger(__name__)
+
+
 
 class MetaAuthorize(object):
     """ 
@@ -31,6 +42,23 @@ class MetaAuthorize(object):
     see the `CKAN documentation <https://docs.ckan.org>`
 
     """
+
+    @staticmethod
+    def create(type, opts):
+        # Do imports in create to avoid circular imports
+        from ckanext.vitality_prototype.impl.simple_meta_auth import _SimpleMetaAuth
+        from ckanext.vitality_prototype.impl.graph_meta_auth import  _GraphMetaAuth
+
+        result = None
+        if type is MetaAuthorizeType.SIMPLE:
+            result = _SimpleMetaAuth()
+            result.__load()
+        elif type is MetaAuthorizeType.GRAPH:
+            result = _GraphMetaAuth(opts['host'], opts['user'],  opts['password'])
+        else:
+            log.error("Unknown MetaAuthorize Implementation type!")
+
+        return result
 
     def add_org(self, org_id):
         """ 
