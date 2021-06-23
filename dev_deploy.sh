@@ -1,16 +1,17 @@
 # Dev Deployment Script
 
+echo "Preventing calamity. Please wait while environment variables are verified..."
 # ENSURE ENVIRONMENT VARIABLES EXIST, OTHERWISE CRASH
 # IT'S CRITICAL THIS EXISTS OTHERWISE THE DEPLOYING SERVER WILL GET NUKED!!
-if [ -z "$(ckan_log_path)"] ||
-   [ -z "$(ckan_port)"] ||
-   [ -z "$(ckan_site_url)"] ||
-   [ -z "$(ckan_tag)"] ||
-   [ -z "$(ckanexts_path)"] ||
-   [ -z "$(docker_exts_path)"] ||
-   [ -z "$(docker_venv_path)"] ||
-   [ -z "$(docker_path)"] ||
-   [ -z "$(ext_name)"] 
+if [ -z "$(ckan_log_path)" ||
+    -z "$(ckan_port)" ||
+    -z "$(ckan_site_url)" ||
+    -z "$(ckan_tag)" ||
+    -z "$(ckanexts_path)" ||
+    -z "$(docker_exts_path)" ||
+    -z "$(docker_venv_path)" ||
+    -z "$(docker_path)" ||
+    -z "$(ext_name)"] 
 then
     echo "Required environment variables not set! Exiting to prevent catastrophic behavior!"
     exit 1
