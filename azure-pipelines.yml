@@ -28,7 +28,6 @@ steps:
   continueOnError: false
   displayName: 'Environment Variable check'
 
-steps:
 - script: |
 
     echo Cloned repo into $(Agent.BuildDirectory)/s/
