@@ -1,7 +1,8 @@
 # Dev Deployment Script
 
 echo "Preventing calamity. Please wait while environment variables are verified..."
-# ENSURE ENVIRONMENT VARIABLES EXIST, OTHERWISE CRASH                                                                                                                                                                                                   # IT'S CRITICAL THIS EXISTS OTHERWISE THE DEPLOYING SERVER WILL GET NUKED!!                                                                                                                                                                             if [ -z "${CKAN_LOG_PATH}"] ||\
+# ENSURE ENVIRONMENT VARIABLES EXIST, OTHERWISE CRASH                                                                                                                                        # IT'S CRITICAL THIS EXISTS OTHERWISE THE DEPLOYING SERVER WILL GET NUKED!!                                                                                                        
+if [ -z "${CKAN_LOG_PATH}"] ||\
    [ -z "${CKAN_PORT}"] ||\
    [ -z "${CKAN_SITE_URL}"] ||\
    [ -z "${CKAN_TAG}"] ||\
