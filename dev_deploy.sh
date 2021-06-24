@@ -26,9 +26,9 @@ echo "DOCKER_PATH: ${DOCKER_PATH}"
 echo "DOCKER_VENV_PATH: ${DOCKER_VENV_PATH}"
 
 # COPY PLUGIN FILES
-echo "Cloned repo into ${AGENT_RELEASEDIRECTORY}/s/"
+echo "Cloned repo into ${AGENT_RELEASEDIRECTORY}"
 echo "Repo contents:"
-ls ${AGENT_RELEASEDIRECTORY}/s/
+ls ${AGENT_RELEASEDIRECTORY}
 
 # If the extension folder does not exist create it.
 if [ ! -d ${CKANEXTS_PATH}${EXT_NAME} ]
