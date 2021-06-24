@@ -15,6 +15,7 @@ if [ -z "$(ckan_log_path)" ||
 then
     echo "Required environment variables not set! Exiting to prevent catastrophic behavior!"
     exit 1
+fi
 
 # # COPY PLUGIN FILES
 # echo "Cloned repo into $(Pipeline.Workspace)/s/"
