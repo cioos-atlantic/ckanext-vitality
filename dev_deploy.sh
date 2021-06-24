@@ -26,9 +26,9 @@ echo "DOCKER_PATH: ${DOCKER_PATH}"
 echo "DOCKER_VENV_PATH: ${DOCKER_VENV_PATH}"
 
 # COPY PLUGIN FILES
-echo "Cloned repo into $(Pipeline.Workspace)/s/"
+echo "Cloned repo into $PIPELINE_WORKSPACE/s/"
 echo "Repo contents:"
-ls $(Pipeline.Workspace)/s/
+ls $PIPELINE_WORKSPACE/s/
 
 # If the extension folder does not exist create it.
 if [ ! -d ${CKANEXTS_PATH}${EXT_NAME} ]
