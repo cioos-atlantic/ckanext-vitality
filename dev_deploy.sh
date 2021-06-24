@@ -37,7 +37,7 @@ then
     sudo mkdir ${CKANEXTS_PATH}${EXT_NAME}
 else
     echo "Extension folder exists, clearing old contents in ${CKANEXTS_PATH}${EXT_NAME}"
-    rm -r ${CKANEXTS_PATH}${EXT_NAME}
+    sudo rm -r ${CKANEXTS_PATH}${EXT_NAME}
 fi
 echo "Copying new files"
 sudo cp -r ${AGENT_RELEASEDIRECTORY}/${RELEASE_PRIMARYARTIFACTSOURCEALIAS}/* ${CKANEXTS_PATH}${EXT_NAME}
