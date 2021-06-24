@@ -17,6 +17,15 @@ then
     exit 1
 fi
 
+echo $CKAN_LOG_PATH
+echo $CKAN_PORT
+echo $CKAN_TAG
+echo $CKAN_SITE_URL
+echo $CKANEXTS_PATH
+echo $EXT_NAME
+echo $DOCKER_PATH
+echo $DOCKER_VENV_PATH
+
 # # COPY PLUGIN FILES
 # echo "Cloned repo into $(Pipeline.Workspace)/s/"
 # echo "Repo contents:"
