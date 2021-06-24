@@ -11,20 +11,19 @@ pool: Default
 steps:
 - script: |
     echo "Preventing calamity. Please wait while environment variables are verified..."
-    # ENSURE ENVIRONMENT VARIABLES EXIST, OTHERWISE CRASH
-    # IT'S CRITICAL THIS EXISTS OTHERWISE THE DEPLOYING SERVER WILL GET NUKED!!
-    if [ -z "$(ckan_log_path)" ||
-        -z "$(ckan_port)" ||
-        -z "$(ckan_site_url)" ||
-        -z "$(ckan_tag)" ||
-        -z "$(ckanexts_path)" ||
-        -z "$(docker_exts_path)" ||
-        -z "$(docker_venv_path)" ||
-        -z "$(docker_path)" ||
-        -z "$(ext_name)"] 
+    # ENSURE ENVIRONMENT VARIABLES EXIST, OTHERWISE CRASH                                                                                                                                                                                                   # IT'S CRITICAL THIS EXISTS OTHERWISE THE DEPLOYING SERVER WILL GET NUKED!!                                                                                                                                                                             if [ -z "${CKAN_LOG_PATH}"] ||\
+    [ -z "${CKAN_PORT}"] ||\
+    [ -z "${CKAN_SITE_URL}"] ||\
+    [ -z "${CKAN_TAG}"] ||\
+    [ -z "${CKANEXTS_PATH}"] ||\
+    [ -z "${DOCKER_EXTS_PATH}"] ||\
+    [ -z "${DOCKER_VENV_PATH}"] ||\
+    [ -z "${DOCKER_PATH}"] ||\
+    [ -z "${EXT_NAME}"]
     then
         echo "Required environment variables not set! Exiting to prevent catastrophic behavior!"
         exit 1
+    fi
   continueOnError: false
   displayName: 'Environment Variable check'
 
