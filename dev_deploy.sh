@@ -3,28 +3,28 @@
 echo "Preventing calamity. Please wait while environment variables are verified..."
 # ENSURE ENVIRONMENT VARIABLES EXIST, OTHERWISE CRASH
 # IT'S CRITICAL THIS EXISTS OTHERWISE THE DEPLOYING SERVER WILL GET NUKED!!
-if [ -z "$CKAN_LOG_PATH" ||
-    -z "$CKAN_PORT" ||
-    -z "$CKAN_SITE_URL" ||
-    -z "$CKAN_TAG" ||
-    -z "$CKANEXTS_PATH" ||
-    -z "$DOCKER_EXTS_PATH" ||
-    -z "$DOCKER_VENV_PATH" ||
-    -z "$DOCKER_PATH" ||
-    -z "$EXT_NAME"] 
+if [ -z "${CKAN_LOG_PATH}" ||
+    -z "${CKAN_PORT}" ||
+    -z "${CKAN_SITE_URL}" ||
+    -z "${CKAN_TAG}" ||
+    -z "${CKANEXTS_PATH}" ||
+    -z "${DOCKER_EXTS_PATH}" ||
+    -z "${DOCKER_VENV_PATH}" ||
+    -z "${DOCKER_PATH}" ||
+    -z "${EXT_NAME}"] 
 then
     echo "Required environment variables not set! Exiting to prevent catastrophic behavior!"
     exit 1
 fi
 
-echo $CKAN_LOG_PATH
-echo $CKAN_PORT
-echo $CKAN_TAG
-echo $CKAN_SITE_URL
-echo $CKANEXTS_PATH
-echo $EXT_NAME
-echo $DOCKER_PATH
-echo $DOCKER_VENV_PATH
+echo ${CKAN_LOG_PATH}
+echo ${CKAN_PORT}
+echo ${CKAN_TAG}
+echo ${CKAN_SITE_URL}
+echo ${CKANEXTS_PATH}
+echo ${EXT_NAME}
+echo ${DOCKER_PATH}
+echo ${DOCKER_VENV_PATH}
 
 # # COPY PLUGIN FILES
 # echo "Cloned repo into $(Pipeline.Workspace)/s/"
