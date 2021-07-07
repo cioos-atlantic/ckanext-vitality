@@ -199,6 +199,14 @@ def generate_whitelist(fields):
     return copy.deepcopy(fields)
 
 def default_public_fields(fields):
+    '''
+    Returns a dictionary containing only the default public fields.
+    '''
+
+    # default_keys = ['id', 'notes_translated', 'notes', 'resources', 'type', 'name', 'state', 'organization]
+    # result = {k: v for k, v in result.items() if k.encode('utf-8') not in default_keys}
+    # fields.clear()
+    # return result
 
     # Result dict
     result = copy.deepcopy(fields)
@@ -219,9 +227,21 @@ def default_public_fields(fields):
 
 
 def generate_default_fields():
-    """ Hard-coded fields for each dataset.
+    """ 
+    Generates a dictionary containing the default fields and associated uuids.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    A dictionary containing hard-coded default values as keys and their corresponding uuids as values.
     """
 
+    # TODO - Structure these field names for easier readability.
+    # TODO - Consider benefit of including descriptors in the code.
+    # TODO - Does this deserve its own class constant?
     field_names = [
         "notes_translated",
         "bbox-east-long",
@@ -291,7 +311,8 @@ def generate_default_fields():
         "temporal-extent"
     ]
 
-    # Result dict
+    # Generate uuids for result dictionary.
+    # return {k: str(uuid.uuid4()) for k in field_names}
     result = {}
 
     for entry in field_names:
