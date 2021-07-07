@@ -4,11 +4,13 @@ import copy
 
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
 
+from pprint import pprint
 
 import ckan
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 from ckan.common import config
+
 
 log = logging.getLogger(__name__)
 
@@ -92,8 +94,21 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
-        self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
+        log.info("Original")
+        log.info(pkg_dict)
 
+        # Filter metadata fields
+        filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
+
+        # Replace pkg_dict with filtered
+        pkg_dict.clear()
+        for k,v in filtered.items():
+            pkg_dict[k] = v
+
+        log.info("after filtering:")
+        log.info(pkg_dict)
+
+        return pkg_dict
 
     def after_search(self, search_results, search_params):
 
@@ -163,8 +178,13 @@ def print_expanded(pkg_dict, key_name=None, depth=None):
         for key,value in pkg_dict.items():
             last_key = key
             if type(value) is dict:
-                #If the value is another dictionary recurse!
+                # If the value is another dictionary recurse!
                 print_expanded(value, key_name=key, depth=depth+1)
+
+            elif type(value) is list:
+
+                for element in value:
+                    print_expanded(element, key_name=key, depth=depth+1)
 
             else:
                 log.info(compute_tabs(depth) + str(key) + ": ["+str(type(value))+"]"+ str(value))
@@ -204,14 +224,31 @@ def default_public_fields(fields):
     result = copy.deepcopy(fields)
 
     for key in result.keys():
-        if (key.encode('utf-8') != "id" and 
-            key.encode('utf-8') != "notes_translated" and 
-            key.encode('utf-8') != "notes" and
-            key.encode('utf-8') != "resources" and
-            key.encode('utf-8') != "type" and 
-            key.encode('utf-8') != "name" and
-            key.encode('utf-8') != "state" and
-            key.encode('utf-8') != "organization"
+        key = key.encode('utf-8')
+        if (key != "id" and 
+            key != "notes_translated" and 
+            key != "notes" and
+            key != "resources" and
+            key != "type" and 
+            key != "name" and
+            key != "state" and
+            key != "organization/approval_status" and
+            key != "organization/created" and
+            key != "organization/description" and
+            key != "organization/description_translated/en" and
+            key != "organization/description_translated/fr" and
+            key != "organization/id" and
+            key != "organization/image_url" and
+            key != "organization/image_url_translated/en" and
+            key != "organization/image_url_translated/fr" and
+            key != "organization/is_organization" and
+            key != "organization/revision_id" and
+            key != "organization/state" and
+            key != "organization/title" and
+            key != "organization/title_translated/en" and
+            key != "organization/title_translated/fr" and
+            key != "organization/type" and 
+            key != "organization/name"
             ):
             result.pop(key, None)
 
@@ -223,72 +260,95 @@ def generate_default_fields():
     """
 
     field_names = [
-        "notes_translated",
-        "bbox-east-long",
-        "license_title",
-        "maintainer",
         "author",
-        "relationships_as_object",
-        "citation",
-        "resource-type",
-        "bbox-north-lat",
-        "private",
-        "maintainer_email",
-        "num_tags",
-        "xml_location_url",
-        "keywords",
-        "metadata-language",
-        "id",
-        "metadata_created",
-        "title_translated",
-        "cited-responsible-party",
-        "metadata_modified",
-        "bbox-south-lat",
         "author_email",
-        "metadata-point-of-contact",
-        "state",
-        "spatial",
-        "progress",
-        "type",
-        "resources",
-        "creator_user_id",
-        "num_resources",
-        "tags",
+        "bbox-east-long",
+        "bbox-north-lat",
+        "bbox-south-lat",
         "bbox-west-long",
+        "cited-responsible-party",
+        "creator_user_id",
         "dataset-reference-date",
-        "tracking_summary",
-        "total",
-        "recent",
-        "metadata-reference-date",
+        "eov",
+        "extras",
         "frequency-of-update",
         "groups",
-        "license_id",
-        "relationships_as_subject",
-        "temporal_extent",
-        "organization",
-        "approval_status",
-        "created",
-        "title",
-        "description_translated",
-        "image_url_translated",
-        "name",
-        "is_organization",
-        "state",
-        "image_url",
-        "revision_id",
-        "title_translated",
-        "description",
-        "unique-resource-identifier-full",
+        "id",
         "isopen",
-        "url",
-        "notes",
-        "owner_org",
-        "extras",
+        "keywords/en",
+        "keywords/fr",
+        "license_id",
+        "license_title",
         "license_url",
-        "eov",
+        "maintainer",
+        "maintainer_email",
+        "metadata_created",
+        "metadata_modified",
+        "metadata-language",
+        "metadata-point-of-contact/contact-info_email",
+        "metadata-point-of-contact/contact-info_online-resource_application-profile",
+        "metadata-point-of-contact/contact-info_online-resource_description",
+        "metadata-point-of-contact/contact-info_online-resource_function",
+        "metadata-point-of-contact/contact-info_online-resource_name",
+        "metadata-point-of-contact/contact-info_online-resource_protocol",
+        "metadata-point-of-contact/contact-info_online-resource_protocol-request",
+        "metadata-point-of-contact/contact-info_online-resource_url",
+        "metadata-point-of-contact/individual-name",
+        "metadata-point-of-contact/organisation-name",
+        "metadata-point-of-contact/position-name",
+        "metadata-point-of-contact/role",
+        "metadata-reference-date",
+        "name",
+        "notes/en",
+        "notes/fr",
+        "notes_translated/en",
+        "notes_translated/fr",
+        "num_resources",
+        "num_tags",
+        "organization/approval_status",
+        "organization/created",
+        "organization/description",
+        "organization/description_translated/en",
+        "organization/description_translated/fr",
+        "organization/id",
+        "organization/image_url",
+        "organization/image_url_translated/en",
+        "organization/image_url_translated/fr",
+        "organization/is_organization",
+        "organization/revision_id",
+        "organization/state",
+        "organization/title",
+        "organization/title_translated/en",
+        "organization/title_translated/fr",
+        "organization/type",
+        "owner_org",
+        "private",
+        "progress",
+        "relationships_as_object",
+        "relationships_as_subject",
+        "resources",
+        "resource-type",
         "revision_id",
+        "spatial/coordinates",
+        "spatial/type",
+        "state",
+        "tags",
+        "temporal-extent/begin",
+        "temporal-extent/end",
+        "title",
+        "title_translated/en",
+        "title_translated/fr",
+        "tracking_summary/recent",
+        "tracking_summary/total",
+        "type",
+        "unique-resource-identifier-full/authority",
+        "unique-resource-identifier-full/code",
+        "unique-resource-identifier-full/code-space",
+        "unique-resource-identifier-full/version",
+        "url",
         "vertical-extent",
-        "temporal-extent"
+        "xml_location_url",
+        "organization/name"
     ]
 
     # Result dict
