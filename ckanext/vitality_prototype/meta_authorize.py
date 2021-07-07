@@ -259,7 +259,7 @@ class MetaAuthorize(object):
 
         for key,value in input.items():
 
-            if key in _strigified_keys():
+            if key in _stringified_keys():
                 log.info("Stringifying %s", key)
                 input[key] = unicode(json.dumps(value),'utf-8')
 
@@ -279,9 +279,9 @@ class MetaAuthorize(object):
             return None
 
 
-def _strigified_keys():
+def _stringified_keys():
     """
-    Returns a list of keys whose values should be strigified json objects
+    Returns a list of keys whose values should be stringified json objects
     """
     return [
         "metadata-point-of-contact",

@@ -234,8 +234,6 @@ def default_public_fields(fields):
     for key in result.keys():
         key = key.encode('utf-8')
         if (key != "id" and 
-            key != "notes_translated" and 
-            key != "notes" and
             key != "resources" and
             key != "type" and 
             key != "name" and
@@ -256,7 +254,9 @@ def default_public_fields(fields):
             key != "organization/title_translated/en" and
             key != "organization/title_translated/fr" and
             key != "organization/type" and 
-            key != "organization/name"
+            key != "organization/name" and
+            key != "title_translated/en" and
+            key != "title_translated/fr" 
             ):
             result.pop(key, None)
 
