@@ -1,5 +1,10 @@
 from enum import Enum
 import logging
+import json
+import copy
+import constants
+from flatten_dict import flatten
+from flatten_dict import unflatten
 
 
 '''
@@ -148,28 +153,28 @@ class MetaAuthorize(object):
         the original dictionary input with fields corresponding to whitelist.      
         """
 
-        #log.info(fields)
-
         # Trivially check input type
         if type(input) != dict:
             raise TypeError("Only dicts can be filtered recursively! Attempted to filter " + str(type(input)))
+
+        # DECODE Stringified JSON elements
+        decoded = self._decode(copy.deepcopy(input))
+
+        # FLATTEN decoded input
+        flattened = flatten(decoded, reducer='path')
 
         # Iterate through the dictionary entries
 
         # TODO: I would use a comprehension + helper function.
         #  i.e. {k: v for k, v in input.items if filterLogicFn(k, v)}
         #  The original dictionary will stay in tact and in memory though.
-        for key,value in input.items():
+        for key,value in flattened.items():
 
             log.info("Checking authorization for %s", str(key))
 
-            # TODO - this needs to be handled way better
-            if key == "en" or key == "fr":
-                continue
-
             # Pop unknown fields
             if key.encode('utf-8') not in fields:
-                input.pop(key, None)
+                flattened.pop(key, None)
                 log.warn("Popped unknown field: " + str(key))
                 continue
 
@@ -178,7 +183,7 @@ class MetaAuthorize(object):
 
             # If the current field's id does not appear in the whitelist, pop it from the input
             if curr_field_id not in whitelist:
-                input.pop(key, None)
+                flattened.pop(key, None)
                 log.info("Key rejected!")
                 continue
 
@@ -186,12 +191,90 @@ class MetaAuthorize(object):
             if type(value) is dict:
                 
                 # Overwrite value with filtered dict
-                input[key] = self.filter_dict(value, fields, whitelist)
+                flattened[key] = self.filter_dict(value, fields, whitelist)
             
             log.info("Key authorized!")
 
+        # UNFLATTEN filtered dictionary
+        unflattened = unflatten(flattened, splitter='path')
 
-        # log.info("Filtered input")
-        # log.info(input)
+        # STRINGIFY required json fields
+        encoded = self._encode(unflattened)
                 
+        return encoded
+
+    
+    def _decode(self, input):
+        """
+        Decode dictionary containing string encoded JSON objects. 
+
+        Parameters
+        ----------
+        input: dict or stringified JSON
+            The dictionary to decode
+
+        Returns
+        -------
+        A dictionary where all fields that contained stringified JSON are now 
+        expanded into dictionaries. 
+        """
+        if type(input) == str or type(input) == unicode:
+            root = MetaAuthorize._parse_json(input)
+        elif type(input) == dict:
+            root = input
+        else:
+            raise TypeError("_decode can only decode str or dict inputs! Got {}".format(str(type(input))))
+
+        if root != None:
+            for key,value in root.items():
+                # If the value is a string attempt to parse it as json
+                #log.info("Attempting to decode: %s - %s ", key, str(type(value)))
+                #TODO - this may need to change for python3
+                if type(value) == str or type(value) == unicode:
+                    #log.info("%s is a str/unicode!", key)
+                    parsed_json = MetaAuthorize._parse_json(value, key)
+
+                    # If the string parsed 
+                    if parsed_json != None:
+                        # into a dictonary 
+                        if type(parsed_json) == dict:
+                            # decode the parsed dict
+                            parsed_json = self._decode(parsed_json)
+                            log.info('%s - parsed type %s', key, type(parsed_json))
+                            # replace the value at the current key
+                            root[key] = parsed_json
+                        # into a list
+                        elif type(parsed_json) == list:
+                            # replace the value at the current key
+                            root[key] = parsed_json
+
+
+                # Else if the value is a dictonary, recurse!
+                elif type(value) == dict:
+                    root[key] = self._decode(value)
+
+                
+        return root
+
+    def _encode(self, input):
+
+        for key,value in input.items():
+
+            if key in constants.STRINGIFIED_FIELDS:
+                log.info("Stringifying %s", key)
+                input[key] = unicode(json.dumps(value),'utf-8')
+
         return input
+
+
+    @staticmethod
+    def _parse_json(value, key=None):
+        try:
+            # TODO: Unicode stuff may need rework for python 3
+            return json.loads(value.encode('utf-8'))
+        except ValueError:
+            #log.info("Value could not be parsed as JSON. %s", key)
+            return None
+        except TypeError:
+            #log.warn("Value could not be parsed as JSON, %s", key)
+            return None
