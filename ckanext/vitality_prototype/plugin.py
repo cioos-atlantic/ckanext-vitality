@@ -1,6 +1,7 @@
 import logging
 import uuid
 import copy
+import constants
 
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
 
@@ -233,31 +234,7 @@ def default_public_fields(fields):
 
     for key in result.keys():
         key = key.encode('utf-8')
-        if (key != "id" and 
-            key != "resources" and
-            key != "type" and 
-            key != "name" and
-            key != "state" and
-            key != "organization/approval_status" and
-            key != "organization/created" and
-            key != "organization/description" and
-            key != "organization/description_translated/en" and
-            key != "organization/description_translated/fr" and
-            key != "organization/id" and
-            key != "organization/image_url" and
-            key != "organization/image_url_translated/en" and
-            key != "organization/image_url_translated/fr" and
-            key != "organization/is_organization" and
-            key != "organization/revision_id" and
-            key != "organization/state" and
-            key != "organization/title" and
-            key != "organization/title_translated/en" and
-            key != "organization/title_translated/fr" and
-            key != "organization/type" and 
-            key != "organization/name" and
-            key != "title_translated/en" and
-            key != "title_translated/fr" 
-            ):
+        if (key not in constants.PUBLIC_FIELDS):
             result.pop(key, None)
 
     return result
@@ -279,97 +256,7 @@ def generate_default_fields():
     # TODO - Structure these field names for easier readability.
     # TODO - Consider benefit of including descriptors in the code.
     # TODO - Does this deserve its own class constant?
-    field_names = [
-        "author",
-        "author_email",
-        "bbox-east-long",
-        "bbox-north-lat",
-        "bbox-south-lat",
-        "bbox-west-long",
-        "cited-responsible-party",
-        "creator_user_id",
-        "dataset-reference-date",
-        "eov",
-        "extras",
-        "frequency-of-update",
-        "groups",
-        "id",
-        "isopen",
-        "keywords/en",
-        "keywords/fr",
-        "license_id",
-        "license_title",
-        "license_url",
-        "maintainer",
-        "maintainer_email",
-        "metadata_created",
-        "metadata_modified",
-        "metadata-language",
-        "metadata-point-of-contact/contact-info_email",
-        "metadata-point-of-contact/contact-info_online-resource_application-profile",
-        "metadata-point-of-contact/contact-info_online-resource_description",
-        "metadata-point-of-contact/contact-info_online-resource_function",
-        "metadata-point-of-contact/contact-info_online-resource_name",
-        "metadata-point-of-contact/contact-info_online-resource_protocol",
-        "metadata-point-of-contact/contact-info_online-resource_protocol-request",
-        "metadata-point-of-contact/contact-info_online-resource_url",
-        "metadata-point-of-contact/individual-name",
-        "metadata-point-of-contact/organisation-name",
-        "metadata-point-of-contact/position-name",
-        "metadata-point-of-contact/role",
-        "metadata-reference-date",
-        "name",
-        "notes/en",
-        "notes/fr",
-        "notes_translated/en",
-        "notes_translated/fr",
-        "num_resources",
-        "num_tags",
-        "organization/approval_status",
-        "organization/created",
-        "organization/description",
-        "organization/description_translated/en",
-        "organization/description_translated/fr",
-        "organization/id",
-        "organization/image_url",
-        "organization/image_url_translated/en",
-        "organization/image_url_translated/fr",
-        "organization/is_organization",
-        "organization/revision_id",
-        "organization/state",
-        "organization/title",
-        "organization/title_translated/en",
-        "organization/title_translated/fr",
-        "organization/type",
-        "owner_org",
-        "private",
-        "progress",
-        "relationships_as_object",
-        "relationships_as_subject",
-        "resources",
-        "resource-type",
-        "revision_id",
-        "spatial/coordinates",
-        "spatial/type",
-        "state",
-        "tags",
-        "temporal-extent/begin",
-        "temporal-extent/end",
-        "title",
-        "title_translated/en",
-        "title_translated/fr",
-        "tracking_summary/recent",
-        "tracking_summary/total",
-        "type",
-        "unique-resource-identifier-full/authority",
-        "unique-resource-identifier-full/code",
-        "unique-resource-identifier-full/code-space",
-        "unique-resource-identifier-full/version",
-        "url",
-        "vertical-extent",
-        "xml_location_url",
-        "organization/name"
-    ]
+    field_names = constants.DATASET_FIELDS
 
     # Generate uuids for result dictionary.
     # return {k: str(uuid.uuid4()) for k in field_names}

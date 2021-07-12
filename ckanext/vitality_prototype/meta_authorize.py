@@ -2,6 +2,7 @@ from enum import Enum
 import logging
 import json
 import copy
+import constants
 from flatten_dict import flatten
 from flatten_dict import unflatten
 
@@ -197,7 +198,7 @@ class MetaAuthorize(object):
         # UNFLATTEN filtered dictionary
         unflattened = unflatten(flattened, splitter='path')
 
-        # STRIGIFY required json fields
+        # STRINGIFY required json fields
         encoded = self._encode(unflattened)
                 
         return encoded
@@ -259,7 +260,7 @@ class MetaAuthorize(object):
 
         for key,value in input.items():
 
-            if key in _stringified_keys():
+            if key in constants.STRINGIFIED_FIELDS:
                 log.info("Stringifying %s", key)
                 input[key] = unicode(json.dumps(value),'utf-8')
 
@@ -277,18 +278,3 @@ class MetaAuthorize(object):
         except TypeError:
             #log.warn("Value could not be parsed as JSON, %s", key)
             return None
-
-
-def _stringified_keys():
-    """
-    Returns a list of keys whose values should be stringified json objects
-    """
-    return [
-        "metadata-point-of-contact",
-        "spatial",
-        "temporal-extent",
-        "unique-resource-identifier-full",
-        "notes",
-        "cited-responsible-party",
-        "dataset-reference-date"
-    ]
