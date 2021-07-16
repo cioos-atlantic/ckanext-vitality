@@ -136,13 +136,13 @@ class MetaAuthorize(object):
         raise NotImplementedError("Class %s doesn't implement set_visible_fields(self, dataset_id, user_id, whitelist)" % (self.__class__.__name__))
     
 
-    def filter_dict(self, input, fields, whitelist):
+    def filter_dict(self, unfiltered_content, fields, whitelist):
         """
         Filter a dictionary, returning only white-listed keys.
 
         Parameters
         ----------
-        input : dict
+        unfiltered_content : dict
             The dictionary to filter.
         fields: dict
             Dictionary representing the fields and ids the dictionary should contain.
@@ -151,12 +151,12 @@ class MetaAuthorize(object):
 
         Returns
         -------
-        the original dictionary input with fields corresponding to whitelist.      
+        a new dictionary with keys and values corresponding to fields and whitelist.      
         """
 
         def is_public(key):
             """
-            Predicate to establish that an entry with key and value can be made public based on data in fields.
+            Predicate to establish that a key entry can be made public based on data in fields.
 
             Parameters
             ----------
@@ -172,21 +172,34 @@ class MetaAuthorize(object):
             return key_string in fields and field_id in whitelist
 
         def test_if_flat(key, val):
-            if type(val) is not dict and is_public(key):
+            """
+            Helper function to handle recursion on the case of val being a dict, otherwise 
+            returns the value if whitelisted or None.
+
+            Parameters
+            ----------
+            key: string
+                The parameter name
+            val: string or dict
+                The parameter value
+            
+            Returns
+            -------
+            The recursed value of for key or None if 
+            """
+            if not isinstance(val, dict):
                 return val
-            elif type(val) is not dict and not is_public(key):
-                return None
             else:
                 return self.filter_dict(val, fields, whitelist)
 
         # Trivially check input type
-        if type(input) != dict:
+        if not isinstance(unfiltered_content, dict):
             raise TypeError("Only dicts can be filtered recursively! Attempted to filter " + str(type(input)))
-        flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(input), reducer='path').items()}
-        log.info("Flattened: {}".format(flattened))
-        filtered = {k: v for k, v in flattened.items() if v is not None}
+        flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(unfiltered_content), reducer='path').items() if is_public(k)}
+        # do not clear the original dictionary, which is needed for admin access.
         # UNFLATTEN filtered dictionary
-        unflattened = unflatten(filtered, splitter='path')
+        log.info("Flattened dict {}".format(flattened))
+        unflattened = unflatten(flattened, splitter='path')
         # STRINGIFY required json fields
         encoded = self._encode(unflattened)  
         return encoded
