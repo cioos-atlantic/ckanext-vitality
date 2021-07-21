@@ -12,6 +12,7 @@ steps:
 - script: |
     echo "Running Tests"
     pwd
+    ls
     pip install coverage==5.5 
     pip install unittest-xml-reporting==2.5.2
     coverage run -m xmlrunner test_meta_authorize --output './testresults'
