@@ -12,8 +12,8 @@ steps:
 - script: |
     echo "Running Tests"
     pwd
-    pip install . 
-    pip install -r requirements.txt
+    pip install -iv coverage==5.5 
+    pip install -iv xmlrunner==2.5.2
     coverage run -m xmlrunner test_meta_authorize --output './testresults'
   displayName: 'Run meta authorize unit tests'
   
