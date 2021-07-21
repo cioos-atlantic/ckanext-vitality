@@ -535,9 +535,11 @@ class TestNotImplemented(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.add_group("test")
 
+    """
     def test_get_groups(self):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.get_groups()
+    """
 
     def test_add_user(self):
         with self.assertRaises(NotImplementedError):
@@ -558,6 +560,7 @@ class TestNotImplemented(unittest.TestCase):
     def test_set_visible_fields(self):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.set_visible_fields("test", "test", [])
+    
 
 # Required to run unit test
 if __name__ == '__main__':
