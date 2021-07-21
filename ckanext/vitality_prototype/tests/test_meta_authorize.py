@@ -9,8 +9,8 @@ testDict is used to simulate pkg_dict throughout the file
 """
 import unittest
 import ckanext.vitality_prototype.meta_authorize as meta_authorize
-from ckan.common import config
-from uuid import uuid4
+
+
 
 # Testing the create function
 # TODO write create tests (not implemented yet)
