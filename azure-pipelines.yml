@@ -15,6 +15,7 @@ steps:
     ls
     pip install coverage==5.5 
     pip install unittest-xml-reporting==2.5.2
+    pip install flatten-dict==0.4.0
     cd ckanext/vitality_prototype/tests
     coverage run -m xmlrunner test_meta_authorize --output './testresults'
   displayName: 'Run meta authorize unit tests'
