@@ -1,0 +1,22 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- unit-testing
+
+pool: Default
+
+steps:
+- script: |
+    echo "Running Tests"
+    pwd
+    pip install -r requirements.txt
+    coverage run -m xmlrunner test_meta_authorize --output './testresults'
+  displayName: 'Run meta authorize unit tests'
+  
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'XUnit'
+    testResultsFiles: '**/TEST-*.xml'
