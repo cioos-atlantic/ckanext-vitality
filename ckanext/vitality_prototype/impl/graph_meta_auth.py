@@ -76,6 +76,9 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__write_visible_fields, dataset_id, user_id, whitelist)
 
+    def get_public_fields(self, dataset_id):
+        return self.get_visible_fields(dataset_id, user_id='public')
+
     @staticmethod
     def __write_visible_fields(tx, dataset_id, user_id, whitelist):      
         for name,id in whitelist.items():

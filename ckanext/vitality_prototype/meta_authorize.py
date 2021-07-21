@@ -125,8 +125,13 @@ class MetaAuthorize(object):
         Return the subset of metadata field ids in this dataset for which the user has access.
         """
         
-        raise NotImplementedError("Class %s doesn't implement get_visible_fields(self, dataset_id, user_id)")
+        raise NotImplementedError("Class %s doesn't implement get_visible_fields(self, dataset_id, user_id)" % (self.__class__.__name__))
 
+    def get_public_fields(self, dataset_id):
+        """
+        Return the subset of metadata field ids in this dataset which anonymous (public) users can access.
+        """
+        raise NotImplementedError("Class %s doesn't implement get_public_fields(self, dataset_id)" % (self.__class__.__name__))
 
     def set_visible_fields(self, dataset_id, user_id, whitelist):
         """
@@ -198,7 +203,7 @@ class MetaAuthorize(object):
         flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(unfiltered_content), reducer='path').items() if is_public(k)}
         # do not clear the original dictionary, which is needed for admin access.
         # UNFLATTEN filtered dictionary
-        log.info("Flattened dict {}".format(flattened))
+        #log.info("Flattened dict {}".format(flattened))
         unflattened = unflatten(flattened, splitter='path')
         # STRINGIFY required json fields
         encoded = self._encode(unflattened)  
@@ -241,7 +246,7 @@ class MetaAuthorize(object):
                         if type(parsed_json) == dict:
                             # decode the parsed dict
                             parsed_json = self._decode(parsed_json)
-                            log.info('%s - parsed type %s', key, type(parsed_json))
+                            #log.info('%s - parsed type %s', key, type(parsed_json))
                             # replace the value at the current key
                             root[key] = parsed_json
                         # into a list
@@ -262,7 +267,7 @@ class MetaAuthorize(object):
         for key,value in input.items():
 
             if key in constants.STRINGIFIED_FIELDS:
-                log.info("Stringifying %s", key)
+                #log.info("Stringifying %s", key)
                 input[key] = unicode(json.dumps(value),'utf-8')
 
         return input

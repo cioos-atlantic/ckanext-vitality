@@ -16,7 +16,7 @@ from ckan.common import config
 log = logging.getLogger(__name__)
 
 
-class Vitality_PrototypePlugin(plugins.SingletonPlugin):
+class Vitality_PrototypePlugin(plugins.SingletonPlugin, toolkit.DefaultDatasetForm):
     """ 
     A CKAN plugin for creating a data registry.
 
@@ -35,10 +35,43 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
+    plugins.implements(plugins.ITemplateHelpers)
+    plugins.implements(plugins.IDatasetForm, inherit=False)
 
 
     # Authorization Interface
     meta_authorize = None
+
+    # ITemplateHelpers
+    def get_helpers(self):
+        return {
+            'vitality_prototype_get_fields': self.meta_authorize.get_metadata_fields,
+            'vitality_prototype_get_public_fields': self.meta_authorize.get_public_fields
+            }
+
+    # IDatasetform
+    def update_package_schema(self):
+        # Get the schema from the super class
+        schema = super(Vitality_PrototypePlugin, self).update_package_schema()
+        log.info("update_package_schema:")
+        
+
+        for field in constants.DATASET_FIELDS:
+            schema.update({
+                field: [
+                    toolkit.get_validator('ignore_missing'),
+                    toolkit.get_converter('convert_to_extras')
+                ]
+            })
+            log.info(schema)
+
+        return schema
+
+    def is_fallback(self):
+        return False
+
+    def package_types(self):
+        return []
 
     # IConfigurer
 
@@ -72,9 +105,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("Context")
         log.info(context)
 
+        log.info("Now checking if this is beforeIndex")
+
         # Skip during indexing
-        if context['user'].encode('utf-8') == 'default':
-            return
+        if (type(context['user']) == str or type(context['user']) == unicode) and context['user'].encode('utf-8') == 'default':
+            log.info("This is before index we're done here.")
+            return pkg_dict
+
+        log.info("This is not before index, filtering")
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
@@ -95,8 +133,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
-        log.info("Original")
-        log.info(pkg_dict)
+        #log.info("Original")
+        #log.info(pkg_dict)
 
         # Filter metadata fields
         filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
@@ -106,8 +144,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         for k,v in filtered.items():
             pkg_dict[k] = v
 
-        log.info("after filtering:")
-        log.info(pkg_dict)
+        #log.info("after filtering:")
+        #log.info(pkg_dict)
 
         return pkg_dict
 
@@ -128,6 +166,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def after_update(self, context, pkg_dict):
         log.info("HIT after update")
+
 
     def before_index(self, pkg_dict):
         log.info("hit before_index")
