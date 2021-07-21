@@ -168,8 +168,9 @@ class MetaAuthorize(object):
             True if the entry should be seen by public and False if not.
             """
             key_string = key.encode("UTF-8")
-            field_id = fields[key_string]
-            return key_string in fields and field_id in whitelist
+
+            # If the key_string is not one we recognize, pop it.    
+            return key_string in fields and fields[key_string] in whitelist
 
         def test_if_flat(key, val):
             """
