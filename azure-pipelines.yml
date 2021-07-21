@@ -13,7 +13,7 @@ steps:
     echo "Running Tests"
     pwd
     pip install coverage==5.5 
-    pip install xmlrunner==2.5.2
+    pip install unittest-xml-reporting==2.5.2
     coverage run -m xmlrunner test_meta_authorize --output './testresults'
   displayName: 'Run meta authorize unit tests'
   
