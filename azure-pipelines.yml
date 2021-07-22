@@ -19,6 +19,7 @@ steps:
     cd ckanext/vitality_prototype/tests
     coverage run -m xmlrunner test_meta_authorize --output './testresults'
     coverage xml --include='*ckanext/vitality_prototype/meta_authorize.py'
+    coverage html --include='*ckanext/vitality_prototype/meta_authorize.py'
   displayName: 'Run meta authorize unit tests'
   
 - task: PublishTestResults@1
