@@ -134,14 +134,15 @@ class MetaAuthorize(object):
         """
 
         raise NotImplementedError("Class %s doesn't implement set_visible_fields(self, dataset_id, user_id, whitelist)" % (self.__class__.__name__))
+    
 
-    def filter_dict(self, input, fields, whitelist):
+    def filter_dict(self, unfiltered_content, fields, whitelist):
         """
         Filter a dictionary, returning only white-listed keys.
 
         Parameters
         ----------
-        input : dict
+        unfiltered_content : dict
             The dictionary to filter.
         fields: dict
             Dictionary representing the fields and ids the dictionary should contain.
@@ -150,57 +151,58 @@ class MetaAuthorize(object):
 
         Returns
         -------
-        the original dictionary input with fields corresponding to whitelist.      
+        a new dictionary with keys and values corresponding to fields and whitelist.      
         """
 
-        # Trivially check input type
-        if type(input) != dict:
-            raise TypeError("Only dicts can be filtered recursively! Attempted to filter " + str(type(input)))
+        def is_visible(key):
+            """
+            Predicate to establish that a key entry can be made public based on data in fields.
 
-        # DECODE Stringified JSON elements
-        decoded = self._decode(copy.deepcopy(input))
+            Parameters
+            ----------
+            key: unicode
+                The encoded string key for the entry.
 
-        # FLATTEN decoded input
-        flattened = flatten(decoded, reducer='path')
+            Returns
+            -------
+            True if the entry should be seen by public and False if not.
+            """
+            key_string = key.encode("UTF-8")
 
-        # Iterate through the dictionary entries
+            # If the key_string is not one we recognize, pop it.    
+            return key_string in fields and fields[key_string] in whitelist
 
-        # TODO: I would use a comprehension + helper function.
-        #  i.e. {k: v for k, v in input.items if filterLogicFn(k, v)}
-        #  The original dictionary will stay in tact and in memory though.
-        for key,value in flattened.items():
+        def test_if_flat(key, val):
+            """
+            Helper function to handle recursion on the case of val being a dict, otherwise 
+            returns the value if whitelisted or None.
 
-            log.info("Checking authorization for %s", str(key))
-
-            # Pop unknown fields
-            if key.encode('utf-8') not in fields:
-                flattened.pop(key, None)
-                log.warn("Popped unknown field: " + str(key))
-                continue
-
-            # Get field id corresponding with key
-            curr_field_id = fields[key.encode('utf-8')]
-
-            # If the current field's id does not appear in the whitelist, pop it from the input
-            if curr_field_id not in whitelist:
-                flattened.pop(key, None)
-                log.info("Key rejected!")
-                continue
-
-            # If the value is a dict, recurse 
-            if type(value) is dict:
-                
-                # Overwrite value with filtered dict
-                flattened[key] = self.filter_dict(value, fields, whitelist)
+            Parameters
+            ----------
+            key: string
+                The parameter name
+            val: string or dict
+                The parameter value
             
-            log.info("Key authorized!")
+            Returns
+            -------
+            The recursed value of for key or None if 
+            """
+            if not isinstance(val, dict):
+                return val
+            else:
+                return self.filter_dict(val, fields, whitelist)
 
+        # Trivially check input type
+        if not isinstance(unfiltered_content, dict):
+            raise TypeError("Only dicts can be filtered recursively! Attempted to filter " + str(type(input)))
+        flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(unfiltered_content), reducer='path').items() if is_visible(k)}
+        # do not clear the original dictionary, which is needed for admin access.
         # UNFLATTEN filtered dictionary
+        log.info("Flattened dict {}".format(flattened))
         unflattened = unflatten(flattened, splitter='path')
-
         # STRINGIFY required json fields
-        encoded = self._encode(unflattened)
-                
+        encoded = self._encode(unflattened)  
         return encoded
 
     

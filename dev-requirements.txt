@@ -1,1 +1,4 @@
 neo4j == 1.7.6
+flatten-dict == 0.4.0
+coverage == 5.5
+unittest-xml-reporting == 2.5.2
