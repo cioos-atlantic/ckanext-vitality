@@ -23,4 +23,4 @@ steps:
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: 'XUnit'
-    testResultsFiles: '/home/devops-agent/myagent/_work/1/s/ckanext/vitality_prototype/tests/testresults/TEST-*.xml'
+    testResultsFiles: '**/TEST-*.*.xml'
