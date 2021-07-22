@@ -20,7 +20,7 @@ steps:
     coverage run -m xmlrunner test_meta_authorize --output './testresults'
   displayName: 'Run meta authorize unit tests'
   
-- task: PublishTestResults@2
+- task: PublishTestResults@1
   inputs:
     testResultsFormat: 'xUnit'
     testResultsFiles: '**/TEST-*.xml'
