@@ -1,0 +1,34 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- unit-testing
+
+pool: Default
+
+steps:
+- script: |
+    echo "Running Tests"
+    pwd
+    ls
+    pip install coverage==5.5 
+    pip install unittest-xml-reporting==2.5.2
+    pip install flatten-dict==0.4.0
+    cd ckanext/vitality_prototype/tests
+    coverage run -m xmlrunner test_meta_authorize --output './testresults'
+    coverage xml --include='*ckanext/vitality_prototype/meta_authorize.py'
+    coverage html --include='*ckanext/vitality_prototype/meta_authorize.py'
+  displayName: 'Run meta authorize unit tests'
+  
+- task: PublishTestResults@1
+  inputs:
+    testResultsFormat: 'xUnit'
+    testResultsFiles: '**/TEST-*.xml'
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'

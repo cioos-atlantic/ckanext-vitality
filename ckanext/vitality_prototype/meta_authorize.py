@@ -159,7 +159,7 @@ class MetaAuthorize(object):
         a new dictionary with keys and values corresponding to fields and whitelist.      
         """
 
-        def is_public(key):
+        def is_visible(key):
             """
             Predicate to establish that a key entry can be made public based on data in fields.
 
@@ -173,8 +173,9 @@ class MetaAuthorize(object):
             True if the entry should be seen by public and False if not.
             """
             key_string = key.encode("UTF-8")
-            field_id = fields[key_string]
-            return key_string in fields and field_id in whitelist
+
+            # If the key_string is not one we recognize, pop it.    
+            return key_string in fields and fields[key_string] in whitelist
 
         def test_if_flat(key, val):
             """
@@ -200,7 +201,7 @@ class MetaAuthorize(object):
         # Trivially check input type
         if not isinstance(unfiltered_content, dict):
             raise TypeError("Only dicts can be filtered recursively! Attempted to filter " + str(type(input)))
-        flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(unfiltered_content), reducer='path').items() if is_public(k)}
+        flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(unfiltered_content), reducer='path').items() if is_visible(k)}
         # do not clear the original dictionary, which is needed for admin access.
         # UNFLATTEN filtered dictionary
         #log.info("Flattened dict {}".format(flattened))
