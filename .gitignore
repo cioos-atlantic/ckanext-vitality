@@ -32,12 +32,12 @@ pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
+testresults/
 .tox/
 .coverage
 .cache
 nosetests.xml
 coverage.xml
-testresults/
 
 # Sphinx documentation
 docs/_build/
