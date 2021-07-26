@@ -14,6 +14,7 @@ import ckanext.vitality_prototype.meta_authorize as meta_authorize
 
 # Testing the create function
 # TODO write create tests (not implemented yet)
+"""
 class TestCreate(unittest.TestCase):
 
     testClass_create = meta_authorize.MetaAuthorize()
@@ -32,6 +33,7 @@ class TestCreate(unittest.TestCase):
         }
         #self.testClass_create =meta_authorize.MetaAuthorize.create(meta_authorize.MetaAuthorizeType.GRAPH, opts)
         pass
+"""
 
 # Testing the decode function
 class TestDecode(unittest.TestCase):
