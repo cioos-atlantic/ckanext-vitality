@@ -5,6 +5,7 @@ import copy
 import constants
 from flatten_dict import flatten
 from flatten_dict import unflatten
+import uuid
 
 
 '''
@@ -112,6 +113,14 @@ class MetaAuthorize(object):
 
         raise NotImplementedError("Class %s doesn't implement add_dataset(self, dataset_id, fields, owner_id)" % (self.__class__.__name__))
 
+    def add_metadata_fields(self, dataset_id, field):
+        """
+        Add a field to the current dataset in the authorization model.
+        """
+
+        raise NotImplementedError("Class %s doesn't implement add_metadata_fields(self, dataset_id, field)" % (self.__class__.__name__))
+
+
     def get_metadata_fields(self, dataset_id):
         """
         Return a dictionary of metadata fields based on the dataset_id
@@ -135,6 +144,13 @@ class MetaAuthorize(object):
 
         raise NotImplementedError("Class %s doesn't implement set_visible_fields(self, dataset_id, user_id, whitelist)" % (self.__class__.__name__))
     
+    def keys_match(self, unfiltered_content, known_fields):
+        """
+        """
+        flattened = {(k, uuid.uuid4()) for k in flatten(self._decode(unfiltered_content), reducer='path').keys() if k not in known_fields.keys()}
+        
+        #TODO Throw error if important fields are removed
+        return flattened
 
     def filter_dict(self, unfiltered_content, fields, whitelist):
         """
@@ -169,7 +185,6 @@ class MetaAuthorize(object):
             """
             key_string = key.encode("UTF-8")
 
-            # If the key_string is not one we recognize, pop it.    
             return key_string in fields and fields[key_string] in whitelist
 
         def test_if_flat(key, val):

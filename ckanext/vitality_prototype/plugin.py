@@ -98,6 +98,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("Original")
         log.info(pkg_dict)
 
+        #TODO check for keys matching
+        extra_keys = self.meta_authorize.keys_match(pkg_dict, dataset_fields)
+        if extra_keys != set():
+            log.info("Extra keys found!")
+            log.info(extra_keys)
+            #TODO Call and implement add metadata fields
+
         # Filter metadata fields
         filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
