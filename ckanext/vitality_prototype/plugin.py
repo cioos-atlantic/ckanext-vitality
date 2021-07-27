@@ -37,11 +37,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
 
-
-
     # Authorization Interface
     meta_authorize = None
-
 
     # ITemplateHelpers
     def get_helpers(self):
