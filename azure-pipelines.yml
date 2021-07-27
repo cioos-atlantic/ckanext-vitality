@@ -5,6 +5,7 @@
 
 trigger:
 - unit-testing
+- settings-ui
 
 pool: Default
 
