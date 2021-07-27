@@ -117,12 +117,25 @@ PUBLIC_FIELDS = [
     "title_translated/fr" 
 ]
 
+# Template issues will occur if these fields don't exist
+MINIMUM_FIELDS = [
+    "id",
+#    "resources",
+    "type",
+    "name",
+    "state",
+    "organization/id",
+    "organization/state",
+    "organization/type",
+    "organization/name"
+]
+
 STRINGIFIED_FIELDS = [
     "metadata-point-of-contact",
-        "spatial",
-        "temporal-extent",
-        "unique-resource-identifier-full",
-        "notes",
-        "cited-responsible-party",
-        "dataset-reference-date"
+    "spatial",
+    "temporal-extent",
+    "unique-resource-identifier-full",
+    "notes",
+    "cited-responsible-party",
+    "dataset-reference-date"
 ]

@@ -77,10 +77,22 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__write_visible_fields, dataset_id, user_id, whitelist)
 
     def get_public_fields(self, dataset_id):
-        return self.get_visible_fields(dataset_id, user_id='public')
+        public_field_ids =  self.get_visible_fields(dataset_id, user_id='public')
+
+        public_field_names = [f[0].encode("utf-8") for f in self.get_metadata_fields(dataset_id).items() if f[1] in public_field_ids]
+
+        #log.info("public field names:")
+        #log.info(public_field_names)
+
+        return public_field_names
+
+
 
     @staticmethod
-    def __write_visible_fields(tx, dataset_id, user_id, whitelist):      
+    def __write_visible_fields(tx, dataset_id, user_id, whitelist):  
+        # First remove all existing 'can_see' relationships between this user, dataset and its elements
+        tx.run("MATCH (u:user {id:'"+user_id+"'})-[r:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) DELETE r")
+
         for name,id in whitelist.items():
             result = tx.run("MATCH (e:element {id:'"+id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:can_see]->(e)")
         return
@@ -164,7 +176,7 @@ class _GraphMetaAuth(MetaAuthorize):
     @staticmethod
     def __read_visible_fields(tx, dataset_id, user_id):
         result = []
-        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) return e.id AS id"):
+        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) return e.id AS id "):
             result.append(record['id'])
         return result
 
