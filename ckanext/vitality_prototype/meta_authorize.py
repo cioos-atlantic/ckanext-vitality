@@ -146,6 +146,14 @@ class MetaAuthorize(object):
     
     def keys_match(self, unfiltered_content, known_fields):
         """
+        Checks if fields in unfiltered_content are already known (in known_fields)
+        
+        Parameters
+        ----------
+        unfiltered_content : dict
+            The dictionary to check for new fields
+        known_fields: dict
+            Dictionary representing known fields that the dictionary should contain
         """
         flattened = {(k, uuid.uuid4()) for k in flatten(self._decode(unfiltered_content), reducer='path').keys() if k not in known_fields.keys()}
         
