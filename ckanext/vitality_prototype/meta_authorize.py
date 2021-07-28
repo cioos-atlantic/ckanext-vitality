@@ -185,7 +185,6 @@ class MetaAuthorize(object):
         if not isinstance(unfiltered_content, dict):
             raise TypeError("Only dicts can be checked for new fields! Attempted to check " + str(type(input)))
         flattened = {(k, uuid.uuid4()) for k in flatten(self._decode(unfiltered_content), reducer='path').keys() if k not in known_fields.keys()}
-        #flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(unfiltered_content), reducer='path').items() if k not in known_fields.keys()}
         #TODO Throw error if important fields are removed
         return flattened
 
