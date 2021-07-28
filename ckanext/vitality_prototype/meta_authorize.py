@@ -157,35 +157,15 @@ class MetaAuthorize(object):
 
         Returns
         -------
-        A set of tuples with the new field and a generated uuid
+        A set of tuples with the new fields and a generated uuid
 
         """
 
-        def test_if_flat(key, val):
-            """
-            Helper function to handle recursion on the case of val being a dict, otherwise 
-            returns the value if whitelisted or None.
-
-            Parameters
-            ----------
-            key: string
-                The parameter name
-            val: string or dict
-                The parameter value
-            
-            Returns
-            -------
-            The recursed value of for key or None if 
-            """
-            if not isinstance(val, dict):
-                return val
-            else:
-                return self.keys_match(val, fields)
-
         if not isinstance(unfiltered_content, dict):
             raise TypeError("Only dicts can be checked for new fields! Attempted to check " + str(type(input)))
+
+        #Iterate over unfiltered_content and return the keys and a generated UUID if they do not already exist in fields
         flattened = {(k, uuid.uuid4()) for k in flatten(self._decode(unfiltered_content), reducer='path').keys() if k not in known_fields.keys()}
-        #TODO Throw error if important fields are removed
         return flattened
 
     def filter_dict(self, unfiltered_content, fields, whitelist):
