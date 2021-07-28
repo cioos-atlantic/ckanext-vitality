@@ -90,7 +90,7 @@ class MetaAuthorize(object):
         """
         Returns a list of group ids from authorization model.
         """
-        raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.name))
+        raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.__name__))
 
     def add_user(self, user_id):
         """

@@ -568,11 +568,9 @@ class TestNotImplemented(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.add_group("test")
 
-    """
     def test_get_groups(self):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.get_groups()
-    """
 
     def test_add_user(self):
         with self.assertRaises(NotImplementedError):
@@ -596,8 +594,12 @@ class TestNotImplemented(unittest.TestCase):
 
 # Tests the keysMatch function within 
 class TestKeysMatch(unittest.TestCase):
-    """Class for testing the keys_match function 
-    in meta authorize"""
+    """
+    Class for testing the keys_match function 
+        in meta authorize
+    May generate UUIDs outside of keys_match in future, so if that
+        is case can remove isolate_fields function
+    """
 
     test_keysMatch = meta_authorize.MetaAuthorize()
 
@@ -752,7 +754,6 @@ class TestKeysMatch(unittest.TestCase):
         field_names = self._isolate_fields(new_fields)
         compare_set = {'tracking_summary/missing'}
         self.assertSetEqual(field_names, compare_set)
-
 
     def test_keysMatch_addCustomField_encoded_multiple(self):
         """
