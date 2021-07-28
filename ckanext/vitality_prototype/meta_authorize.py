@@ -155,6 +155,8 @@ class MetaAuthorize(object):
         known_fields: dict
             Dictionary representing known fields that the dictionary should contain
         """
+        if not isinstance(unfiltered_content, dict):
+            raise TypeError("Only dicts can be checked for new fields! Attempted to check " + str(type(input)))
         flattened = {(k, uuid.uuid4()) for k in flatten(self._decode(unfiltered_content), reducer='path').keys() if k not in known_fields.keys()}
         
         #TODO Throw error if important fields are removed
