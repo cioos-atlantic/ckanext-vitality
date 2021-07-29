@@ -24,6 +24,7 @@ DATASET_FIELDS = [
         "metadata_created",
         "metadata_modified",
         "metadata-language",
+        "metadata-point-of-contact",
         "metadata-point-of-contact/contact-info_email",
         "metadata-point-of-contact/contact-info_online-resource_application-profile",
         "metadata-point-of-contact/contact-info_online-resource_description",
