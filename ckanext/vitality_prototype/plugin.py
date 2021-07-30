@@ -78,6 +78,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info(context)
 
         log.info("Now checking if this is beforeIndex")
+        
+        log.info(context['package'].type)
+
+        if context['package'].type != 'dataset':
+            log.info("This pkg is not a dataset. Let it through unchanged.")
+            return pkg_dict
 
         # Skip during indexing
         if (type(context['user']) == str or type(context['user']) == unicode) and context['user'].encode('utf-8') == 'default':
@@ -88,6 +94,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         log.info("Initial pkg_dict:")
         log.info(pkg_dict)
+
+
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
@@ -133,11 +141,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def after_search(self, search_results, search_params):
 
         log.info('# of results ' + str(len(search_results)))
-
-
-        for item in search_results['results']:
-            for entry in item.keys():
-                log.info(entry)
 
         return search_results
 
