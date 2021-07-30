@@ -86,6 +86,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         log.info("This is not before index, filtering")
 
+        log.info("Initial pkg_dict:")
+        log.info(pkg_dict)
+
         # If there is no authed user, user 'public' as the user id.
         user_id = None
 
@@ -122,6 +125,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'resources' not in pkg_dict:
             pkg_dict['resources'] = []
 
+        log.info("Final pkg_dict:")
+        log.info(pkg_dict)
+
         return pkg_dict
 
     def after_search(self, search_results, search_params):
@@ -142,8 +148,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def after_update(self, context, pkg_dict):
         log.info("HIT after update")
+        log.info(context)
+
         log.info("Updated pkg_dict")
         log.info(pkg_dict)
+
+        # Only update public visibility settings if the field exists in pkg_dict
+        if 'public-visibility' not in pkg_dict:
+            return pkg_dict
 
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
