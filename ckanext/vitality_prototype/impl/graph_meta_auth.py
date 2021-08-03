@@ -45,6 +45,22 @@ class _GraphMetaAuth(MetaAuthorize):
                 return
 
             session.write_transaction(self.__write_user, user_id)
+    
+    def add_metadata_fields(self, dataset_id, fields):
+        with self.driver.session() as session:
+
+            # Get the names of the existing fields for this dataset
+            existing_fields = session.read_transaction(self.__read_elements, dataset_id)
+            existing_names = [x[0] for x in existing_fields.items()]
+
+            # For every new field to add
+            for f in fields:
+                # Only add the new field if a field with that name doesn't already exist
+                if f[0] not in existing_names:
+                    session.write_transaction(self.__write_metadata_field, f[0], str(f[1]), dataset_id)
+                
+
+
 
     def get_users(self):
         with self.driver.session() as session:

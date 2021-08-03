@@ -103,6 +103,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if extra_keys != set():
             log.info("Extra keys found!")
             log.info(extra_keys)
+            self.meta_authorize.add_metadata_fields(dataset_id, extra_keys)
             #TODO Call and implement add metadata fields
 
         # Filter metadata fields

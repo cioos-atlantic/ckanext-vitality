@@ -113,7 +113,7 @@ class MetaAuthorize(object):
 
         raise NotImplementedError("Class %s doesn't implement add_dataset(self, dataset_id, fields, owner_id)" % (self.__class__.__name__))
 
-    def add_metadata_fields(self, dataset_id, field):
+    def add_metadata_fields(self, dataset_id, fields):
         """
         Add a field to the current dataset in the authorization model.
         """
