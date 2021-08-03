@@ -2,6 +2,7 @@ import logging
 import uuid
 import copy
 import constants
+import json
 
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
 
@@ -32,13 +33,18 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     (Include list of public methods here.)
         
     """
-
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
-
+    plugins.implements(plugins.ITemplateHelpers)
 
     # Authorization Interface
     meta_authorize = None
+
+    # ITemplateHelpers
+    def get_helpers(self):
+        return {
+            'vitality_prototype_get_minimum_fields': lambda: constants.MINIMUM_FIELDS
+        }
 
     # IConfigurer
 
@@ -56,7 +62,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         toolkit.add_template_directory(config_, 'templates')
         toolkit.add_public_directory(config_, 'public')
-        toolkit.add_resource('fanstatic', 'vitality_prototype')
 
         # Load neo4j connection parameters from config
         # Initalize meta_authorize
@@ -72,9 +77,25 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("Context")
         log.info(context)
 
+        log.info("Now checking if this is beforeIndex")
+        
+        log.info(context['package'].type)
+
+        if context['package'].type != 'dataset':
+            log.info("This pkg is not a dataset. Let it through unchanged.")
+            return pkg_dict
+
         # Skip during indexing
-        if context['user'].encode('utf-8') == 'default':
-            return
+        if (type(context['user']) == str or type(context['user']) == unicode) and context['user'].encode('utf-8') == 'default':
+            log.info("This is before index we're done here.")
+            return pkg_dict
+
+        log.info("This is not before index, filtering")
+
+        log.info("Initial pkg_dict:")
+        log.info(pkg_dict)
+
+
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
@@ -95,8 +116,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
-        log.info("Original")
-        log.info(pkg_dict)
 
         # Filter metadata fields
         filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
@@ -106,7 +125,15 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         for k,v in filtered.items():
             pkg_dict[k] = v
 
-        log.info("after filtering:")
+
+        # Inject public visibility settings
+        pkg_dict['public-visibility'] = self.meta_authorize.get_public_fields(dataset_id)
+
+        # Inject empty resources list if resources has been filtered.
+        if 'resources' not in pkg_dict:
+            pkg_dict['resources'] = []
+
+        log.info("Final pkg_dict:")
         log.info(pkg_dict)
 
         return pkg_dict
@@ -115,19 +142,45 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         log.info('# of results ' + str(len(search_results)))
 
-
-        for item in search_results['results']:
-            for entry in item.keys():
-                log.info(entry)
-
         return search_results
 
     def after_create(self, context, pkg_dict):
         log.info("HIT after_create")
+        return pkg_dict
 
 
     def after_update(self, context, pkg_dict):
         log.info("HIT after update")
+        log.info(context)
+
+        log.info("Updated pkg_dict")
+        log.info(pkg_dict)
+
+        # Only update public visibility settings if the field exists in pkg_dict
+        if 'public-visibility' not in pkg_dict:
+            return pkg_dict
+
+        # Decode unicode id...
+        dataset_id = pkg_dict["id"].encode("utf-8")
+
+        # extract/load public visibility settings
+        publically_visible_fields = json.loads(pkg_dict['public-visibility'])
+
+        # ensure minimum fields are always visible
+        for min_field in constants.MINIMUM_FIELDS:
+            if min_field not in publically_visible_fields:
+                publically_visible_fields.append(min_field)
+
+        # create a new public visibility whitelist
+        whitelist = {}
+        for f in self.meta_authorize.get_metadata_fields(dataset_id).items():
+            if f[0] in publically_visible_fields:
+                whitelist[f[0]] = f[1]
+        
+        self.meta_authorize.set_visible_fields(dataset_id, 'public', whitelist)
+
+        return pkg_dict
+
 
     def before_index(self, pkg_dict):
         log.info("hit before_index")
