@@ -117,6 +117,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
 
+        #TODO check for keys matching
+        extra_keys = self.meta_authorize.keys_match(pkg_dict, dataset_fields)
+        if extra_keys != set():
+            log.info("Extra keys found!")
+            log.info(extra_keys)
+            self.meta_authorize.add_metadata_fields(dataset_id, extra_keys)
+            #TODO Call and implement add metadata fields
+
         # Filter metadata fields
         filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
