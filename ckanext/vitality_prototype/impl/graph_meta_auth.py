@@ -3,6 +3,7 @@ from os import stat
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 from neo4j import GraphDatabase
 import uuid 
+from ckanext.vitality_prototype import constants
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_users)
 
-    def add_dataset(self, dataset_id, fields, owner_id):
+    def add_dataset(self, dataset_id, fields, owner_id, dname=None):
         
         with self.driver.session() as session:
 
@@ -74,7 +75,7 @@ class _GraphMetaAuth(MetaAuthorize):
             if session.read_transaction(self.__get_dataset, dataset_id) != None:
                 return
 
-            session.write_transaction(self.__write_dataset, dataset_id)
+            session.write_transaction(self.__write_dataset, dataset_id, dname)
             session.write_transaction(self.__bind_dataset_to_org, owner_id, dataset_id)
             # create the fields as well
             for name,id in fields.items():
@@ -114,13 +115,22 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
-    def __write_dataset(tx,id):
-        result = tx.run("CREATE (:dataset { id: '"+id+"'})")
+    def __write_dataset(tx,id,dname=None):
+        if dname != None:
+            # Create a safe dataset name if one is passed
+            # https://stackoverflow.com/questions/7406102/create-sane-safe-filename-from-any-unsafe-string
+            result = tx.run("CREATE (:dataset { id: '"+id+"', name:'"+"".join([c for c in dname if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'})")
+        else:
+            result = tx.run("CREATE (:dataset { id: '"+id+"'})")
+        
         return
 
     @staticmethod
     def __write_metadata_field(tx, name, id, dataset_id):
-        result = tx.run("MATCH (d:dataset {id:'"+dataset_id+"'}) CREATE (d)-[:has]->(:element {name:'"+name+"',id:'"+id+"'})")
+        if name in constants.MINIMUM_FIELDS:
+            result = tx.run("MATCH (d:dataset {id:'"+dataset_id+"'}) CREATE (d)-[:has]->(:element {name:'"+name+"',id:'"+id+"',required:true})")
+        else:
+            result = tx.run("MATCH (d:dataset {id:'"+dataset_id+"'}) CREATE (d)-[:has]->(:element {name:'"+name+"',id:'"+id+"'})")
         return
 
     @staticmethod

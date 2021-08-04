@@ -195,7 +195,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
-        self.meta_authorize.add_dataset(dataset_id, generate_default_fields(), pkg_dict['owner_org'])
+        self.meta_authorize.add_dataset(dataset_id, generate_default_fields(), pkg_dict['owner_org'], dname=pkg_dict['title'])
 
         log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
 
