@@ -4,8 +4,8 @@
 # https://aka.ms/yaml
 
 trigger:
-- unit-testing
-- settings-ui
+- development
+- main
 
 pool: Default
 
