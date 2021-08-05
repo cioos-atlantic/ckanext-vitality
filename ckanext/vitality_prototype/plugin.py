@@ -147,48 +147,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_search(self, search_results, search_params):
-
-        # Gets the number of results matching the search parameters
-        result_count = int(search_results['count'])
-        log.info('# of results ' + str(result_count))
-        log.info(len(search_results['results']))
-
-        #TODO Delete after testing
-        #Pops the last returned result from the search and hides the data (only for testing)
-        if len(search_results['results']) > 1:
-            pkg_dict = search_results['results'].pop()
-            user_id = 'public'
-
-            # Decode unicode id...
-            dataset_id = pkg_dict["id"].encode("utf-8")
-
-            # Load dataset fields
-            dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
-            
-            # Load white-listed fields
-            visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
-
-
-            # Filter metadata fields
-            filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
-
-            # Replace pkg_dict with filtered
-            pkg_dict.clear()
-            for k,v in filtered.items():
-                pkg_dict[k] = v
-
-
-            # Inject public visibility settings
-            pkg_dict['public-visibility'] = self.meta_authorize.get_public_fields(dataset_id)
-
-            # Inject empty resources list if resources has been filtered.
-            if 'resources' not in pkg_dict:
-                pkg_dict['resources'] = []
-
-            log.info("Final pkg_dict:")
-            log.info(pkg_dict)
-
-            search_results['results'].append(pkg_dict)
+        #Return number of results of search
+        log.info('# of results ' + str(len(search_results)))
 
         return search_results
 
