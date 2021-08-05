@@ -5,6 +5,7 @@ import copy
 import constants
 from flatten_dict import flatten
 from flatten_dict import unflatten
+import uuid
 
 
 '''
@@ -89,7 +90,7 @@ class MetaAuthorize(object):
         """
         Returns a list of group ids from authorization model.
         """
-        raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.name))
+        raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.__name__))
 
     def add_user(self, user_id):
         """
@@ -111,6 +112,14 @@ class MetaAuthorize(object):
         """
 
         raise NotImplementedError("Class %s doesn't implement add_dataset(self, dataset_id, fields, owner_id)" % (self.__class__.__name__))
+
+    def add_metadata_fields(self, dataset_id, fields):
+        """
+        Add a field to the current dataset in the authorization model.
+        """
+
+        raise NotImplementedError("Class %s doesn't implement add_metadata_fields(self, dataset_id, field)" % (self.__class__.__name__))
+
 
     def get_metadata_fields(self, dataset_id):
         """
@@ -140,6 +149,29 @@ class MetaAuthorize(object):
 
         raise NotImplementedError("Class %s doesn't implement set_visible_fields(self, dataset_id, user_id, whitelist)" % (self.__class__.__name__))
     
+    def keys_match(self, unfiltered_content, known_fields):
+        """
+        Checks if fields in unfiltered_content are already known (in known_fields)
+        
+        Parameters
+        ----------
+        unfiltered_content : dict
+            The dictionary to check for new fields
+        known_fields: dict
+            Dictionary representing known fields that the dictionary should contain
+
+        Returns
+        -------
+        A set of tuples with the new fields and a generated uuid
+
+        """
+
+        if not isinstance(unfiltered_content, dict):
+            raise TypeError("Only dicts can be checked for new fields! Attempted to check " + str(type(input)))
+
+        #Iterate over unfiltered_content and return the keys and a generated UUID if they do not already exist in fields
+        flattened = {(k, uuid.uuid4()) for k in flatten(self._decode(unfiltered_content), reducer='path').keys() if k not in known_fields.keys()}
+        return flattened
 
     def filter_dict(self, unfiltered_content, fields, whitelist):
         """
@@ -174,7 +206,6 @@ class MetaAuthorize(object):
             """
             key_string = key.encode("UTF-8")
 
-            # If the key_string is not one we recognize, pop it.    
             return key_string in fields and fields[key_string] in whitelist
 
         def test_if_flat(key, val):
@@ -210,7 +241,6 @@ class MetaAuthorize(object):
         encoded = self._encode(unflattened)  
         return encoded
 
-    
     def _decode(self, input):
         """
         Decode dictionary containing string encoded JSON objects. 
