@@ -148,13 +148,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def after_search(self, search_results, search_params):
 
-        # Doesn't correspond to results, use search_results[count]
+        # Gets the number of results matching the search parameters
         result_count = int(search_results['count'])
         log.info('# of results ' + str(result_count))
         log.info(len(search_results['results']))
 
         #TODO Delete after testing
-        
+        #Pops the last returned result from the search and hides the data (only for testing)
         if len(search_results['results']) > 1:
             pkg_dict = search_results['results'].pop()
             user_id = 'public'
