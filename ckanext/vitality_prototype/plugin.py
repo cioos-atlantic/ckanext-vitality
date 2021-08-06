@@ -186,6 +186,27 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'resources' not in pkg_dict:
                 pkg_dict['resources'] = []
 
+            #TODO Remove this after testing
+            #Add filler for fields with no value present so they can be harvested
+            log.info(pkg_dict.keys())
+            if 'resource-type' not in pkg_dict or not pkg_dict['resource-type']:
+                pkg_dict['resource-type'] = '-'
+            if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
+                pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
+            if 'frequency-of-update' not in pkg_dict or not pkg_dict['frequency-of-update']:
+                pkg_dict['frequency-of-update'] = '-'
+            if 'progress' not in pkg_dict or not pkg_dict['progress']:
+                pkg_dict['progress'] = '-'
+            if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
+                pkg_dict['metadata-point-of-contact'] = "{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}"
+            if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
+                pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
+            if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
+                pkg_dict['xml_location_url'] = '-'
+            if 'eov' not in pkg_dict:
+                pkg_dict['eov'] = []
+            if 'keywords' not in pkg_dict:
+                pkg_dict['keywords'] = {"fr":[], "en":[]}
             log.info("Final pkg_dict:")
             log.info(pkg_dict)
 
