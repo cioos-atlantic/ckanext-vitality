@@ -190,13 +190,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             #Add filler for fields with no value present so they can be harvested
             log.info(pkg_dict.keys())
             if 'resource-type' not in pkg_dict or not pkg_dict['resource-type']:
-                pkg_dict['resource-type'] = '-'
+                pkg_dict['resource-type'] = 'dataset'
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
             if 'frequency-of-update' not in pkg_dict or not pkg_dict['frequency-of-update']:
-                pkg_dict['frequency-of-update'] = '-'
+                pkg_dict['frequency-of-update'] = 'asNeeded'
             if 'progress' not in pkg_dict or not pkg_dict['progress']:
-                pkg_dict['progress'] = '-'
+                pkg_dict['progress'] = 'planned'
             if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
                 pkg_dict['metadata-point-of-contact'] = "{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}"
             if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
@@ -204,9 +204,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
             if 'eov' not in pkg_dict:
-                pkg_dict['eov'] = []
+                pkg_dict['eov'] = ["seaState"]
             if 'keywords' not in pkg_dict:
-                pkg_dict['keywords'] = {"fr":[], "en":[]}
+                pkg_dict['keywords'] = {"fr":["seaState"], "en":["seaState"]}
             log.info("Final pkg_dict:")
             log.info(pkg_dict)
 
