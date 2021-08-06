@@ -147,70 +147,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_search(self, search_results, search_params):
-
         # Gets the number of results matching the search parameters
-        result_count = int(search_results['count'])
-        log.info('# of results ' + str(result_count))
-        log.info(len(search_results['results']))
-
-        #TODO Delete after testing
-        #Pops the last returned result from the search and hides the data (only for testing)
-        if len(search_results['results']) > 1:
-            log.info('Hiding search data')
-            pkg_dict = search_results['results'].pop()
-            user_id = 'public'
-
-            # Decode unicode id...
-            dataset_id = pkg_dict["id"].encode("utf-8")
-
-            # Load dataset fields
-            dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
-            
-            # Load white-listed fields
-            visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
-
-
-            # Filter metadata fields
-            filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
-
-            # Replace pkg_dict with filtered
-            pkg_dict.clear()
-            for k,v in filtered.items():
-                pkg_dict[k] = v
-
-
-            # Inject public visibility settings
-            pkg_dict['public-visibility'] = self.meta_authorize.get_public_fields(dataset_id)
-
-            # Inject empty resources list if resources has been filtered.
-            if 'resources' not in pkg_dict:
-                pkg_dict['resources'] = []
-
-            #TODO Remove this after testing
-            #Add filler for fields with no value present so they can be harvested
-            log.info(pkg_dict.keys())
-            if 'resource-type' not in pkg_dict or not pkg_dict['resource-type']:
-                pkg_dict['resource-type'] = 'dataset'
-            if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
-                pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
-            if 'frequency-of-update' not in pkg_dict or not pkg_dict['frequency-of-update']:
-                pkg_dict['frequency-of-update'] = 'asNeeded'
-            if 'progress' not in pkg_dict or not pkg_dict['progress']:
-                pkg_dict['progress'] = 'planned'
-            if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
-                pkg_dict['metadata-point-of-contact'] = "{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}"
-            if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
-                pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
-            if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
-                pkg_dict['xml_location_url'] = '-'
-            if 'eov' not in pkg_dict:
-                pkg_dict['eov'] = ["seaState"]
-            if 'keywords' not in pkg_dict:
-                pkg_dict['keywords'] = {"fr":["seaState"], "en":["seaState"]}
-            log.info("Final pkg_dict:")
-            log.info(pkg_dict)
-
-            search_results['results'].append(pkg_dict)
+        log.info('# of results ' + str(len(search_results)))
 
         return search_results
 
