@@ -147,19 +147,26 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_search(self, search_results, search_params):
+        
+        #TODO Pass in context and set the user_id (similar to after_show)
+        user_id = 'public'
 
-        # Gets the number of results matching the search parameters
-        result_count = int(search_results['count'])
+        # Gets the number of results matching the search parameters (total)
+        log.info('# of total results ' + str(search_results['count']))
+        # However, at a time only loads a portion of the results
+        result_count = len(search_results['results'])
         log.info('# of results ' + str(result_count))
-        log.info(len(search_results['results']))
+        
+        log.info('Parsing search data')
 
-        #TODO Delete after testing
-        #Pops the last returned result from the search and hides the data (only for testing)
-        if len(search_results['results']) > 1:
-            log.info('Hiding search data')
-            pkg_dict = search_results['results'].pop()
-            user_id = 'public'
+        # Get the list of datasets from the search results
+        datasets = search_results['results']
 
+        # Go through each of the datasets returned in the results
+        for x in range(len(datasets)):
+            pkg_dict = search_results['results'][x]
+
+            # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
 
@@ -169,7 +176,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # Load white-listed fields
             visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
-
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
@@ -178,7 +184,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             for k,v in filtered.items():
                 pkg_dict[k] = v
 
-
             # Inject public visibility settings
             pkg_dict['public-visibility'] = self.meta_authorize.get_public_fields(dataset_id)
 
@@ -186,31 +191,34 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'resources' not in pkg_dict:
                 pkg_dict['resources'] = []
 
-            #TODO Remove this after testing
-            #Add filler for fields with no value present so they can be harvested
+            # Add filler for fields with no value present so they can be harvested
+            # TODO determine if this addition is needed or if the fields will be required
+            """
             log.info(pkg_dict.keys())
-            if 'resource-type' not in pkg_dict or not pkg_dict['resource-type']:
-                pkg_dict['resource-type'] = 'dataset'
+            # The below code block do not required any variables. Can use filler/blank values
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
-            if 'frequency-of-update' not in pkg_dict or not pkg_dict['frequency-of-update']:
-                pkg_dict['frequency-of-update'] = 'asNeeded'
-            if 'progress' not in pkg_dict or not pkg_dict['progress']:
-                pkg_dict['progress'] = 'planned'
             if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
                 pkg_dict['metadata-point-of-contact'] = "{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}"
             if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
+
+            # The below code blocks require a pre-determined value. May have to be overridden if hidden
+            if 'resource-type' not in pkg_dict or not pkg_dict['resource-type']:
+                pkg_dict['resource-type'] = 'dataset'
+            if 'frequency-of-update' not in pkg_dict or not pkg_dict['frequency-of-update']:
+                pkg_dict['frequency-of-update'] = 'asNeeded'
+            if 'progress' not in pkg_dict or not pkg_dict['progress']:
+                pkg_dict['progress'] = 'planned'    
             if 'eov' not in pkg_dict:
                 pkg_dict['eov'] = ["seaState"]
             if 'keywords' not in pkg_dict:
                 pkg_dict['keywords'] = {"fr":["seaState"], "en":["seaState"]}
+            """
             log.info("Final pkg_dict:")
             log.info(pkg_dict)
-
-            search_results['results'].append(pkg_dict)
 
         return search_results
 
