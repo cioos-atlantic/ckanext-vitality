@@ -11,6 +11,7 @@ from pprint import pprint
 import ckan
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
+import ckan.plugins.interfaces as interfaces
 from ckan.common import config
 
 
@@ -147,21 +148,26 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_search(self, search_results, search_params):
+
+        # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
+        if toolkit.c.userobj == None:
+            log.info('Public user')
+            user_id = 'public'   
+        else:
+            user = toolkit.c.userobj
+            user_id = user.id
+            log.info('Request from ' + user_id)
         
-        #TODO Pass in context and set the user_id (similar to after_show)
-        user_id = 'public'
 
         # Gets the number of results matching the search parameters (total)
         log.info('# of total results ' + str(search_results['count']))
+
         # However, at a time only loads a portion of the results
-        result_count = len(search_results['results'])
-        log.info('# of results ' + str(result_count))
-        
-        log.info('Parsing search data')
-
-        # Get the list of datasets from the search results
         datasets = search_results['results']
-
+        result_count = len(datasets)
+        log.info('# of results loaded' + str(result_count))
+    
+        log.info('Parsing search data')
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
@@ -205,7 +211,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
 
-            # The below code blocks require a pre-determined value. May have to be overridden if hidden
+            # The below code blocks require a pre-determined value. Values have to be overridden if hidden normally
             if 'resource-type' not in pkg_dict or not pkg_dict['resource-type']:
                 pkg_dict['resource-type'] = 'dataset'
             if 'frequency-of-update' not in pkg_dict or not pkg_dict['frequency-of-update']:
@@ -217,8 +223,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'keywords' not in pkg_dict:
                 pkg_dict['keywords'] = {"fr":["seaState"], "en":["seaState"]}
             """
-            log.info("Final pkg_dict:")
-            log.info(pkg_dict)
 
         return search_results
 
