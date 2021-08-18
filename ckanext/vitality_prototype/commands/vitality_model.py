@@ -100,7 +100,7 @@ class VitalityModel(CkanCommand):
         print(org_list)
 
         for o in org_list:
-            self.meta_authorize.add_org(o['id'],o['users'])
+            self.meta_authorize.add_org(o['id'],o['users'],o['name'])
             continue
 
     def seed_groups(self, context):

@@ -17,13 +17,13 @@ class _GraphMetaAuth(MetaAuthorize):
     def __close(self):
         self.driver.close()
 
-    def add_org(self, org_id, users):
+    def add_org(self, org_id, users, org_name=None):
         with self.driver.session() as session:
             # Check to see if the org already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_org, org_id):
                 return
 
-            session.write_transaction(self.__write_org, org_id)
+            session.write_transaction(self.__write_org, org_id, org_name)
 
             for user in users:
                 session.write_transaction(self.__bind_user_to_org, org_id, user['id'])
@@ -139,8 +139,11 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
-    def __write_org(tx, id):
-        result = tx.run("CREATE (o:organization {id:'"+id+"'})")
+    def __write_org(tx, id, org_name=None):
+        if org_name != None:
+            result = tx.run("CREATE (o:organization {id:'"+id+"', name:'"+str(org_name)+"'})")
+        else:
+            result = tx.run("CREATE (o:organization {id:'"+id+"'})")
         return
 
     @staticmethod
