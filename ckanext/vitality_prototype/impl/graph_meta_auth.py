@@ -215,6 +215,24 @@ class _GraphMetaAuth(MetaAuthorize):
             result[record['name']] = record['id']
         return result
 
+    @staticmethod
+    def __create_role(tx, name):
+        records = tx.run("MATCH (r:role {id:'"+name+"'}) return r")
+        if len(records) > 0:
+            return None
+        else:
+            tx.run("CREATE (r:role {id:'"+name+"'})")
+        return None
+
+    @staticmethod
+    def __write_role_fields(tx, dataset_id, role, whitelist):  
+        # First remove all existing 'can_see' relationships between this user, dataset and its elements
+        tx.run("MATCH (r:role {id:'"+role+"'})-[c:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) DELETE c")
+
+        for name,id in whitelist.items():
+            result = tx.run("MATCH (e:element {id:'"+id+"'}), (r:role {id:'"+role+"'}) CREATE (r)-[:can_see]->(e)")
+        return
+
 if __name__ == "__main__":
     greeter = _GraphMetaAuth("bolt://localhost:7687", "neo4j", "password")
     greeter.print_greeting("hello, world")

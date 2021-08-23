@@ -198,10 +198,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['resources'] = []
 
             # Add filler for fields with no value present so they can be harvested
-            # TODO determine if this addition is needed or if the fields will be required
-            """
-            log.info(pkg_dict.keys())
-            # The below code block do not required any variables. Can use filler/blank values
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
             if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
@@ -210,19 +206,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-
-            # The below code blocks require a pre-determined value. Values have to be overridden if hidden normally
-            if 'resource-type' not in pkg_dict or not pkg_dict['resource-type']:
-                pkg_dict['resource-type'] = 'dataset'
-            if 'frequency-of-update' not in pkg_dict or not pkg_dict['frequency-of-update']:
-                pkg_dict['frequency-of-update'] = 'asNeeded'
-            if 'progress' not in pkg_dict or not pkg_dict['progress']:
-                pkg_dict['progress'] = 'planned'    
-            if 'eov' not in pkg_dict:
-                pkg_dict['eov'] = ["seaState"]
-            if 'keywords' not in pkg_dict:
-                pkg_dict['keywords'] = {"fr":["seaState"], "en":["seaState"]}
-            """
 
         return search_results
 
