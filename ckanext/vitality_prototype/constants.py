@@ -115,11 +115,23 @@ PUBLIC_FIELDS = [
     "organization/type",
     "organization/name",
     "title_translated/en",
-    "title_translated/fr" 
+    "title_translated/fr",
+    "cited-responsible-party",
+    "eov",
+    "frequency-of-update",
+    "keywords/en",
+    "keywords/fr",
+    "metadata-point-of-contact",
+    "notes_translated/en",
+    "notes_translated/fr",
+    "progress",
+    "resource_type",
+    "xml_location_url" 
 ]
 
-# Template issues will occur if these fields don't exist
+# Template / harvest issues will occur if these fields don't exist
 MINIMUM_FIELDS = [
+    # Template issues
     "id",
 #    "resources",
     "type",
@@ -128,7 +140,20 @@ MINIMUM_FIELDS = [
     "organization/id",
     "organization/state",
     "organization/type",
-    "organization/name"
+    "organization/name",
+    # Harvest issues
+    "cited-responsible-party",
+    "eov",
+    "frequency-of-update",
+    "keywords/en",
+    "keywords/fr",
+    "metadata-point-of-contact",
+    "notes_translated/en",
+    "notes_translated/fr",
+    "progress",
+    "resource_type",
+    "xml_location_url"
+
 ]
 
 STRINGIFIED_FIELDS = [
