@@ -66,12 +66,12 @@ class MetaAuthorize(object):
 
         return result
 
-    def add_org(self, org_id):
+    def add_org(self, org_id, users, org_name):
         """ 
         Add an organization to the authorization model with org_id.
         """
 
-        raise NotImplementedError("Class %s doesn't implement add_org(self, org_id)" % (self.__class__.__name__))
+        raise NotImplementedError("Class %s doesn't implement add_org(self, org_id, users, org_name)" % (self.__class__.__name__))
 
     def get_orgs(self):
         """
