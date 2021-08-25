@@ -91,12 +91,19 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info("This is before index we're done here.")
             return pkg_dict
 
+
         log.info("This is not before index, filtering")
 
         log.info("Initial pkg_dict:")
         log.info(pkg_dict)
 
+        # Decode unicode id...
+        dataset_id = pkg_dict["id"].encode("utf-8")
 
+        # Check to see if the dataset has just been created
+        if(self.meta_authorize.get_dataset(dataset_id) == None):
+            log.info("Dataset not in model yet. Returning")
+            return pkg_dict
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
@@ -106,10 +113,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         else:
             user = context['auth_user_obj']
             user_id = user.id
-
-
-        # Decode unicode id...
-        dataset_id = pkg_dict["id"].encode("utf-8")
 
         # Load dataset fields
         dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
