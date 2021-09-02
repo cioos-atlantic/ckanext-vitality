@@ -220,13 +220,17 @@ class _GraphMetaAuth(MetaAuthorize):
     def __read_elements(tx, dataset_id):
         #log.debug("Getting elements for dataset: %s", dataset_id)
         result = {}
-        for record in tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has]->(e:element) RETURN e.name AS name, e.id AS id"):
+        for record in tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)-[:can_see]->(e:element) RETURN DISTINCT e.name AS name, e.id AS id"):
             #log.debug("record: %s", str(record))
             result[record['name']] = record['id']
         return result
 
     @staticmethod
     def __read_roles(tx, org_id=None):
+    """
+        Returns all roles managed by the provided organization
+        If no org_id provided, returns all roles
+    """
         result = {}
         if(org_id==None):
             for record in tx.run("MATCH (r:role) RETURN r.id as id"):
