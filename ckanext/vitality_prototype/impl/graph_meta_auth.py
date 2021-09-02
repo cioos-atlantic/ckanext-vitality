@@ -261,16 +261,10 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
-    def __write_role_fields(tx, dataset_id, role, whitelist):  
-        # First remove all existing 'can_see' relationships between this user, dataset and its elements
-        tx.run("MATCH (r:role {id:'"+role+"'})-[c:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) DELETE c")
-        for name,id in whitelist.items():
-            result = tx.run("MATCH (e:element {id:'"+id+"'}), (r:role {id:'"+role+"'}) CREATE (r)-[:can_see]->(e)")
-        return
-
-    @staticmethod
-    def __bind_role_to_org(tx, role_id, org_id):
-        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:has_role]->(r)")
+    def __write_role_access(tx, template_id, role_id, dataset_id):  
+        # Deletes existing role access to a template and creates new role access to a different one
+        tx.run("MATCH (r:role {id:'"+role+"'})-[u:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}) DELETE u")
+        result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (r)-[:uses_template]->(t)")
         return
 
     @staticmethod
