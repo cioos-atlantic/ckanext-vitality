@@ -59,13 +59,18 @@ class _GraphMetaAuth(MetaAuthorize):
                 # Only add the new field if a field with that name doesn't already exist
                 if f[0] not in existing_names:
                     session.write_transaction(self.__write_metadata_field, f[0], str(f[1]), dataset_id)
-                
-
-
 
     def get_users(self):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_users)
+
+    def get_dataset(self, dataset_id):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__get_dataset, dataset_id)
+
+    def get_roles(self):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__read_roles)
 
     def add_dataset(self, dataset_id, fields, owner_id, dname=None):
         
@@ -103,8 +108,6 @@ class _GraphMetaAuth(MetaAuthorize):
 
         return public_field_names
 
-
-
     @staticmethod
     def __write_visible_fields(tx, dataset_id, user_id, whitelist):  
         # First remove all existing 'can_see' relationships between this user, dataset and its elements
@@ -135,7 +138,11 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_user(tx, id):
-        result = tx.run("CREATE (u:user {id:'"+id+"'})")
+        result = tx.run("MATCH (u:user {id:'"+id+"'}) return u"
+        if len(records) > 0:
+            return None
+        else:
+            result = tx.run("CREATE (u:user {id:'"+id+"'})")
         return
 
     @staticmethod
@@ -219,21 +226,56 @@ class _GraphMetaAuth(MetaAuthorize):
         return result
 
     @staticmethod
-    def __create_role(tx, name):
-        records = tx.run("MATCH (r:role {id:'"+name+"'}) return r")
+    def __read_roles(tx, org_id=None):
+        result = {}
+        if(org_id==None):
+            for record in tx.run("MATCH (r:role) RETURN r.id as id"):
+                result[record['name']] = record['id']
+        else:
+            for record in tx.run("MATCH (r:role)<-[:has_role]-(o:organization {id:'"+ org_id +"'}) RETURN r.id as id"):
+                result[record['name']] = record['id']
+        return result
+
+    @staticmethod
+    def __write_role(tx, id, name=None):
+        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r")
         if len(records) > 0:
             return None
         else:
-            tx.run("CREATE (r:role {id:'"+name+"'})")
+            if(name==None):
+                tx.run("CREATE (r:role {id:'"+id+"'})")
+            else:
+                tx.run("CREATE (r:role {id:'"+id+"', name:'"+ name +"'})")
+        return None
+
+    @staticmethod
+    def __write_template(tx, id, name=None):
+        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t")
+        if len(records) > 0:
+            return None
+        else:
+            if(name==None):
+                tx.run("CREATE (t:template {id:'"+id+"'})")
+            else:
+                tx.run("CREATE (t:template {id:'"+id+"', name:'"+ name +"'})")
         return None
 
     @staticmethod
     def __write_role_fields(tx, dataset_id, role, whitelist):  
         # First remove all existing 'can_see' relationships between this user, dataset and its elements
         tx.run("MATCH (r:role {id:'"+role+"'})-[c:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) DELETE c")
-
         for name,id in whitelist.items():
             result = tx.run("MATCH (e:element {id:'"+id+"'}), (r:role {id:'"+role+"'}) CREATE (r)-[:can_see]->(e)")
+        return
+
+    @staticmethod
+    def __bind_role_to_org(tx, role_id, org_id):
+        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:has_role]->(r)")
+        return
+
+    @staticmethod
+    def __bind_role_to_org(tx, role_id, org_id):
+        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:has_role]->(r)")
         return
 
 if __name__ == "__main__":
