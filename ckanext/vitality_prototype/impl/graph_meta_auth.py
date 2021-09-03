@@ -125,7 +125,6 @@ class _GraphMetaAuth(MetaAuthorize):
             result = tx.run("CREATE (:dataset { id: '"+id+"', name:'"+"".join([c for c in dname if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'})")
         else:
             result = tx.run("CREATE (:dataset { id: '"+id+"'})")
-        
         return
 
     @staticmethod
@@ -170,7 +169,14 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_dataset_to_org(tx, org_id, dataset_id):
-        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (d:dataset {id:'"+dataset_id+"'}) CREATE (o)-[:owns]->(d)")
+        # Checks to see if relationship already exists
+        records = tx.run("MATCH (o:organization {id:'"+org_id+"'}-[w:owns]->(d:dataset {id:'"+dataset_id+"'}) RETURN w")
+        if(len(records)>0):
+            return
+        else:
+            # Checks if dataset already owned, if so clears existing edge and adds new one
+            tx.run("MATCH (d:dataset {id:'"+dataset_id+"'})<-[w:owns]-(o:organization) DELETE w")
+            result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (d:dataset {id:'"+dataset_id+"'}) CREATE (o)-[:owns]->(d)")
         return
 
     @staticmethod
