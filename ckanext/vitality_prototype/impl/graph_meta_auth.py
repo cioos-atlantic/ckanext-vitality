@@ -109,12 +109,12 @@ class _GraphMetaAuth(MetaAuthorize):
         return public_field_names
 
     @staticmethod
-    def __write_visible_fields(tx, dataset_id, user_id, whitelist):  
-        # First remove all existing 'can_see' relationships between this user, dataset and its elements
-        tx.run("MATCH (u:user {id:'"+user_id+"'})-[r:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) DELETE r")
+    def __write_visible_fields(tx, template_id, whitelist):  
+        # First remove all existing 'can_see' relationships between the template, dataset and its elements
+        tx.run("MATCH (e:element)<-[c:can_see]-(t:template {id:'"+template_id+"'}) DELETE r")
 
         for name,id in whitelist.items():
-            result = tx.run("MATCH (e:element {id:'"+id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:can_see]->(e)")
+            result = tx.run("MATCH (e:element {id:'"+id+"'}), (t:template {id:'"+template_id+"'}) CREATE (t)-[:can_see]->(e)")
         return
 
     @staticmethod
@@ -202,17 +202,30 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
+    def __get_role(tx, id):
+        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
+        for record in records:
+            return record['id']
+        return None
+
+    @staticmethod
+    def __get_template(tx, id):
+        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id as id")
+        for record in records:
+            return record['id']
+        return None
+
+    @staticmethod
     def __read_users(tx):
         result = []
         for record in tx.run("MATCH (u:user) RETURN u.id as id"):
             result.append(record['id'])
-
         return result
 
     @staticmethod
     def __read_visible_fields(tx, dataset_id, user_id):
         result = []
-        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:can_see]->(e:element)<-[:has]-(d:dataset {id:'"+dataset_id+"'}) return e.id AS id "):
+        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:has_role]->(r:role)-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id "):
             result.append(record['id'])
         return result
 
@@ -241,6 +254,17 @@ class _GraphMetaAuth(MetaAuthorize):
         return result
 
     @staticmethod
+    def __read_templates(tx, dataset_id=None):
+        result = {}
+        if(dataset_id==None):
+            for record in tx.run("MATCH (t:template) RETURN t.id as id"):
+                result[record['name']] = record['id']
+        else:
+            for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t.id as id"):
+                result[record['name']] = record['id']
+        return result
+
+    @staticmethod
     def __write_role(tx, id, name=None):
         records = tx.run("MATCH (r:role {id:'"+id+"'}) return r")
         if len(records) > 0:
@@ -265,15 +289,37 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
-    def __write_role_access(tx, template_id, role_id, dataset_id):  
-        # Deletes existing role access to a template and creates new role access to a different one
-        tx.run("MATCH (r:role {id:'"+role+"'})-[u:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}) DELETE u")
-        result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (r)-[:uses_template]->(t)")
+    def __bind_role_to_org(tx, role_id, org_id):
+        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:has_role]->(r)")
         return
 
     @staticmethod
-    def __bind_role_to_org(tx, role_id, org_id):
-        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:has_role]->(r)")
+    def __bind_template_to_dataset(tx, template_id, dataset_id):
+        result = tx.run("MATCH (t:template {id'"+template_id"'}), (d:dataset {id:'"+dataset_id+"'}) CREATE (d)-[:has_template]->(t)"})
+        return
+
+    @staticmethod
+    def __bind_role_to_template(tx, role_id, template_id):
+        # Check to see if role already is connected to a template from that dataset, if so then delete edge
+        # Can use this one without the dataset ID (unique role ids)
+        records = tx.run("MATCH (r:role {id:'"+role_id+"'})-[u:uses_template]->(t:template {id:'"+template_id+"'}) RETURN u")
+        if(len(records)>0):
+            return
+        else:
+            tx.run("MATCH (t:template {id:'"+template_id+"'})<-[:has_template]-(d:dataset), (r:role {id:'"+role_id+"'})-[u:uses_template]->(:template)<-[:has_template]-(d) DELETE u")
+            result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (r)-[:uses_template]->(t)")
+        return
+
+    @staticmethod
+    def __bind_user_to_role(tx, user_id, role_id):
+        # Check if edge already exists
+        records = tx.run("MATCH (r:role {id:'"+role_id+"'})<-[h:has_role]-(u:user {id:'"+user_id+"'}) RETURN h")
+        if(len(records)>0):
+            return
+        else:
+            # Check to see if user is already given a role in the organization, and if so delete those edges
+            tx.run("MATCH (r:role {id:'"+role_id+"'})<-[:manages_role]-(o:organization), (u:user {id:'"+user_id+"'})-[h:has_role]->(:role)<-[:manages_role]-(o) DELETE h")
+            result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:has_role]->(r)")
         return
 
 if __name__ == "__main__":
