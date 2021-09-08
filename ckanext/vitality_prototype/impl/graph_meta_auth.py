@@ -72,8 +72,12 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_roles)
 
+    def add_role(self):
+        with self.driver.session() as session:
+            # Create role
+            # Bind role to dataset
+
     def add_dataset(self, dataset_id, fields, owner_id, dname=None):
-        
         with self.driver.session() as session:
 
             # Check to see if the dataset already exists, if so we're done as we don't want to create duplicates.
