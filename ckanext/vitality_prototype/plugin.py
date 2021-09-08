@@ -74,6 +74,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
+        # Temporarily disabled
         """
         log.info("Context")
         log.info(context)
@@ -149,6 +150,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def after_search(self, search_results, search_params):
         return search_results
+
+        # Temporarily disabled
         """   
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
@@ -217,6 +220,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_update(self, context, pkg_dict):
+        # Temporarily disabled
         """
         log.info("HIT after update")
         log.info(context)
@@ -251,6 +255,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
 
     def before_index(self, pkg_dict):
+        # Temporarily disabled
         """
         log.info("hit before_index")
 
