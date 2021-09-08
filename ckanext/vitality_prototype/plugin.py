@@ -74,7 +74,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
-        
+        """
         log.info("Context")
         log.info(context)
 
@@ -144,11 +144,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         log.info("Final pkg_dict:")
         log.info(pkg_dict)
-
+        """
         return pkg_dict
 
     def after_search(self, search_results, search_params):
-
+        return search_results
+        """   
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
             log.info('Public user')
@@ -208,14 +209,15 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['xml_location_url'] = '-'
         # Gets the number of results matching the search parameters
         log.info('# of results ' + str(len(search_results)))
-
         return search_results
+        """
 
     def after_create(self, context, pkg_dict):
         log.info("HIT after_create")
         return pkg_dict
 
     def after_update(self, context, pkg_dict):
+        """
         log.info("HIT after update")
         log.info(context)
 
@@ -244,11 +246,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 whitelist[f[0]] = f[1]
         
         self.meta_authorize.set_visible_fields(dataset_id, 'public', whitelist)
-
+        """
         return pkg_dict
 
 
     def before_index(self, pkg_dict):
+        """
         log.info("hit before_index")
 
         dataset_id = pkg_dict["id"].encode("utf-8")
@@ -280,7 +283,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             )
         )
 
-
+        """
         return pkg_dict
 
 '''
