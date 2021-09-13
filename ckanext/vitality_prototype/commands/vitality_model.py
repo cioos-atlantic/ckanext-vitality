@@ -96,7 +96,7 @@ class VitalityModel(CkanCommand):
     def seed_orgs(self, context):
         org_list = get_action('organization_list')(context, {'all_fields':True, 'include_users':True})
         print("Got {} organizations".format(len(org_list)))
-
+        
         print(org_list)
 
         for o in org_list:
@@ -124,6 +124,7 @@ class VitalityModel(CkanCommand):
             self.meta_authorize.add_user(u['id'].decode('utf-8'))
 
         # Create the public user for people not logged in.
+        # TODO Public users might already be
         self.meta_authorize.add_user('public')
 
 

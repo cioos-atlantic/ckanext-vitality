@@ -184,6 +184,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             
             # Load white-listed fields
             visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
+            log.info('Visible fields ' + str(visible_fields))
 
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
@@ -211,6 +212,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['xml_location_url'] = '-'
         # Gets the number of results matching the search parameters
         log.info('# of results ' + str(len(search_results)))
+
 
         return search_results
 
@@ -256,10 +258,36 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
-        self.meta_authorize.add_dataset(dataset_id, generate_default_fields(), pkg_dict['owner_org'], dname=pkg_dict['title'])
+        # Generate the default templates (full and min). For non-default templates use uuid to generate ID
+
+        self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
+
+        full_id = dataset_id + '_full'
+        minimal_id = dataset_id + '_min'
+        log.info("adding default templates")
+        self.meta_authorize.add_default_templates(
+            dataset_id, 
+            full_id, 
+            generate_default_fields(), 
+            minimal_id, 
+            generate_whitelist(
+                default_public_fields(self.meta_authorize.get_metadata_fields(pkg_dict["id"]))
+            )
+        )
+    
+        # Adds full and minimal template for each dataset
 
         log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
 
+        # Set visible fields per template
+
+
+        # Set user access (for now just default to full)
+        for user in self.meta_authorize.get_users():
+            log.info(str(user))
+            self.meta_authorize.set_template_access(user, full_id)
+
+        """
         # Set visible fields for all users in the authorization model.
         for user in self.meta_authorize.get_users():
             # Skip public user, we handle that as a special case after.
@@ -273,7 +301,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                     self.meta_authorize.get_metadata_fields(pkg_dict["id"])
                     )
                 )
-
         # Set visible fields for the public/not-logged in users
         self.meta_authorize.set_visible_fields(
             dataset_id,
@@ -282,7 +309,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 default_public_fields(self.meta_authorize.get_metadata_fields(pkg_dict["id"]))
             )
         )
-
+        """
 
         return pkg_dict
 
