@@ -263,15 +263,18 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
 
         full_id = dataset_id + '_full'
+        full_name = 'Full'
         minimal_id = dataset_id + '_min'
+        minimal_name = "Minimal"
+
         log.info("adding default templates")
-        self.meta_authorize.add_default_templates(
-            dataset_id, 
-            full_id, 
-            generate_default_fields(), 
-            minimal_id, 
+        self.meta_authorize.add_full_template(dataset_id, full_id, full_name, generate_default_fields())
+
+        self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name)
+        self.meta_authorize.set_visible_fields(
+            minimal_id,
             generate_whitelist(
-                default_public_fields(self.meta_authorize.get_metadata_fields(pkg_dict["id"]))
+                default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
             )
         )
     
@@ -284,8 +287,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Set user access (for now just default to full)
         for user in self.meta_authorize.get_users():
-            log.info(str(user))
-            self.meta_authorize.set_template_access(user, full_id)
+            if user == 'public':
+                self.meta_authorize.set_template_access(user, minimal_id)
+            else:
+                self.meta_authorize.set_template_access(user, full_id)
 
         """
         # Set visible fields for all users in the authorization model.

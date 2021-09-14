@@ -49,7 +49,7 @@ class _GraphMetaAuth(MetaAuthorize):
     
     def add_metadata_fields(self, dataset_id, fields):
         with self.driver.session() as session:
-
+            #TODO Update with templates
             # Get the names of the existing fields for this dataset
             existing_fields = session.read_transaction(self.__read_elements, dataset_id)
             existing_names = [x[0] for x in existing_fields.items()]
@@ -81,7 +81,7 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__write_dataset, dataset_id, dname)
             session.write_transaction(self.__bind_dataset_to_org, owner_id, dataset_id)
 
-    def add_default_templates(self, dataset_id, full_id, full_fields, min_id, min_fields):
+    def add_full_template(self, dataset_id, template_id, template_name, fields):
         with self.driver.session() as session:
             # Default templates already exist, skipping
             if session.read_transaction(self.__read_templates, dataset_id):
@@ -89,17 +89,11 @@ class _GraphMetaAuth(MetaAuthorize):
                 return
 
             # Add full template
-            self.add_template(dataset_id, full_id, "Full")
+            self.add_template(dataset_id, template_id, template_name)
 
             # create the fields as well
-            for name,id in full_fields.items():
-                session.write_transaction(self.__write_metadata_field, name, id, full_id)
-
-            # Add min template
-            self.add_template(dataset_id, min_id, "Minimum")
-
-            log.info(min_fields)
-            self.set_visible_fields(min_id, min_fields)
+            for name,id in fields.items():
+                session.write_transaction(self.__write_metadata_field, name, id, template_id)
 
     def add_template(self, dataset_id, template_id, template_name=None):
         with self.driver.session() as session:
@@ -272,10 +266,10 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         result = {}
         if(org_id==None):
-            for record in tx.run("MATCH (r:role) RETURN r.id as id"):
+            for record in tx.run("MATCH (r:role) RETURN r.name AS name, r.id AS id"):
                 result[record['name']] = record['id']
         else:
-            for record in tx.run("MATCH (r:role)<-[:has_role]-(o:organization {id:'"+ org_id +"'}) RETURN r.id as id"):
+            for record in tx.run("MATCH (r:role)<-[:has_role]-(o:organization {id:'"+ org_id +"'}) RETURN r.name AS name, r.id AS id"):
                 result[record['name']] = record['id']
         return result
 
@@ -283,13 +277,11 @@ class _GraphMetaAuth(MetaAuthorize):
     def __read_templates(tx, dataset_id=None):
         result = {}
         if(dataset_id==None):
-            for record in tx.run("MATCH (t:template) RETURN t"):
+            for record in tx.run("MATCH (t:template) RETURN t.name AS name, t.id AS id"):
                 result[record['name']] = record['id']
         else:
-            for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t"):
-                log.info(record)
+            for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t.name AS name, t.id AS id"):
                 result[record['name']] = record['id']
-        log.info(result)
         return result
 
     @staticmethod
@@ -305,7 +297,7 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_template(tx, id, name=None):
-        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t")
+        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id AS id")
         for record in records:
             return record['id']
         if(name==None):
@@ -321,6 +313,10 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_template_to_dataset(tx, template_id, dataset_id):
+        records = tx.run("MATCH (t:template {id:'"+template_id+"'})<-[h:has_template]-(d:dataset) RETURN h")
+        for record in records:
+            return
+        tx.run("MATCH (t:template {id:'"+template_id+"'})<-[h:has_template]-(d:dataset {id:'"+dataset_id+"'}) DELETE h")
         result = tx.run("MATCH (t:template {id:'"+template_id+"'}), (d:dataset {id:'"+dataset_id+"'}) CREATE (d)-[:has_template]->(t)")
         return
 
@@ -330,7 +326,7 @@ class _GraphMetaAuth(MetaAuthorize):
         # Can use this one without the dataset ID (unique role ids)
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})-[u:uses_template]->(t:template {id:'"+template_id+"'}) RETURN u")
         for record in records:
-            return record['id']
+            return
         tx.run("MATCH (t:template {id:'"+template_id+"'})<-[:has_template]-(d:dataset), (r:role {id:'"+role_id+"'})-[u:uses_template]->(:template)<-[:has_template]-(d) DELETE u")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (r)-[:uses_template]->(t)")
         return
@@ -340,8 +336,7 @@ class _GraphMetaAuth(MetaAuthorize):
         # TEMPORARY - To test templates without roles
         records = tx.run("MATCH (u:user {id:'"+user_id+"'})-[h:uses_template]->(t:template {id:'"+template_id+"'}) RETURN h")
         for record in records:
-            log.info('Existing relationship ' + str(record['id']))
-            return record['id']
+            return
         tx.run("MATCH (t:template {id:'"+template_id+"'})<-[:has_template]-(d:dataset), (u:user {id:'"+user_id+"'})-[h:uses_template]->(:template)<-[:has_template]-(d) DELETE h")
         result = tx.run("MATCH (u:user {id:'"+user_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (u)-[:uses_template]->(t)")
         return
@@ -351,7 +346,7 @@ class _GraphMetaAuth(MetaAuthorize):
         # Check if edge already exists
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})<-[h:has_role]-(u:user {id:'"+user_id+"'}) RETURN h")
         for record in records:
-            return record['id']
+            return
         # Check to see if user is already given a role in the organization, and if so delete those edges
         tx.run("MATCH (r:role {id:'"+role_id+"'})<-[:manages_role]-(o:organization), (u:user {id:'"+user_id+"'})-[h:has_role]->(:role)<-[:manages_role]-(o) DELETE h")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:has_role]->(r)")
