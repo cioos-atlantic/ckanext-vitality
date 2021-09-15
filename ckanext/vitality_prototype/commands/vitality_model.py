@@ -116,17 +116,22 @@ class VitalityModel(CkanCommand):
 
 
     def seed_users(self, context):
-        user_list = get_action('user_list')(context,{})
+        # Create admin role
+        self.meta_authorize.add_role('admin', 'admin')
+        self.meta_authorize.add_role('public', 'public')
 
+        user_list = get_action('user_list')(context,{})
         print("Got {} users".format(len(user_list)))
         for u in user_list:
             print(u)
             self.meta_authorize.add_user(u['id'].decode('utf-8'))
+            if u['sysadmin']:
+                pass
+                # add to admin role
 
         # Create the public user for people not logged in.
         # TODO Public users might already be
         self.meta_authorize.add_user('public')
-
 
     def _load_config(self):
         super(VitalityModel, self)._load_config()

@@ -159,8 +159,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         else:
             user = toolkit.c.userobj
             user_id = user.id
+            log.info(user)
             log.info('Request from ' + user_id)
-        
 
         # Gets the number of results matching the search parameters (total)
         log.info('# of total results ' + str(search_results['count']))
@@ -284,12 +284,22 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
 
         # Set user access (default to logged in users get full and public get minimal)
+        # Change this for roles
         for user in self.meta_authorize.get_users():
             if user == 'public':
                 self.meta_authorize.set_template_access(user, minimal_id)
             else:
                 self.meta_authorize.set_template_access(user, full_id)
-
+        """
+            self.meta_authorize.populate_member_roles()
+            self.meta_authorize.bind
+        """
+        # for user in self.meta_authorize.get_users():
+            # if user is public
+                # add to public role
+            # if user is admin
+                # add to admin role
+            # otherwise, for every member of organization they are in, add to that
         return pkg_dict
 
 '''

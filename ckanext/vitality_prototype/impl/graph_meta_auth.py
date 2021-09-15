@@ -25,6 +25,11 @@ class _GraphMetaAuth(MetaAuthorize):
 
             session.write_transaction(self.__write_org, org_id, org_name)
 
+            # Create member role
+            member_id = str(uuid.uuid4())
+            session.write_transaction(self.__write_role, member_id, "Member")
+            session.write_transaction(self.__bind_role_to_org, member_id, org_id)
+
             for user in users:
                 session.write_transaction(self.__bind_user_to_org, org_id, user['id'])
 
@@ -67,6 +72,10 @@ class _GraphMetaAuth(MetaAuthorize):
     def get_dataset(self, dataset_id):
         with self.driver.session() as session:
             return session.read_transaction(self.__get_dataset, dataset_id)
+
+    def add_role(self, id, name=None):
+        with self.driver.session() as session:
+            session.write_transaction(self.__write_role, id, name)
 
     def get_roles(self):
         with self.driver.session() as session:
@@ -170,6 +179,28 @@ class _GraphMetaAuth(MetaAuthorize):
     def __write_group(tx, id):
         result = tx.run("CREATE (g:group {id:'"+id+"'})")
         return
+
+    @staticmethod
+    def __write_role(tx, id, name=None):
+        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r")
+        for record in records:
+            return record['id']
+        if(name==None):
+            tx.run("CREATE (r:role {id:'"+id+"'})")
+        else:
+            tx.run("CREATE (r:role {id:'"+id+"', name:'"+ str(name) +"'})")
+        return None
+
+    @staticmethod
+    def __write_template(tx, id, name=None):
+        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id AS id")
+        for record in records:
+            return record['id']
+        if(name==None):
+            tx.run("CREATE (t:template {id:'"+id+"'})")
+        else:
+            tx.run("CREATE (t:template {id:'"+id+"', name:'"+ str(name) +"'})")
+        return None
 
     @staticmethod
     def __bind_user_to_org(tx, org_id, user_id):
@@ -283,28 +314,6 @@ class _GraphMetaAuth(MetaAuthorize):
             for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t.name AS name, t.id AS id"):
                 result[record['name']] = record['id']
         return result
-
-    @staticmethod
-    def __write_role(tx, id, name=None):
-        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r")
-        for record in records:
-            return record['id']
-        if(name==None):
-            tx.run("CREATE (r:role {id:'"+id+"'})")
-        else:
-            tx.run("CREATE (r:role {id:'"+id+"', name:'"+ name +"'})")
-        return None
-
-    @staticmethod
-    def __write_template(tx, id, name=None):
-        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id AS id")
-        for record in records:
-            return record['id']
-        if(name==None):
-            tx.run("CREATE (t:template {id:'"+id+"'})")
-        else:
-            tx.run("CREATE (t:template {id:'"+id+"', name:'"+ name +"'})")
-        return None
 
     @staticmethod
     def __bind_role_to_org(tx, role_id, org_id):
