@@ -124,14 +124,15 @@ class VitalityModel(CkanCommand):
         print("Got {} users".format(len(user_list)))
         for u in user_list:
             print(u)
-            self.meta_authorize.add_user(u['id'].decode('utf-8'))
+            user_id = u['id'].decode('utf-8')
+            self.meta_authorize.add_user(user_id)
             if u['sysadmin']:
-                pass
-                # add to admin role
+                self.meta_authorize.set_user_role(user_id, 'admin')
 
         # Create the public user for people not logged in.
         # TODO Public users might already be
         self.meta_authorize.add_user('public')
+        self.meta_authorize.set_user_role('public', 'public')
 
     def _load_config(self):
         super(VitalityModel, self)._load_config()

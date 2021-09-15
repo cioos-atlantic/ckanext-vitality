@@ -32,6 +32,8 @@ class _GraphMetaAuth(MetaAuthorize):
 
             for user in users:
                 session.write_transaction(self.__bind_user_to_org, org_id, user['id'])
+                if not session.read_transaction(self.__has_role, user['id'], 'admin'):
+                    session.write_transaction(self.__bind_user_to_role, user['id'], member_id)
 
     def add_group(self, group_id, users):
         with self.driver.session() as session:
@@ -80,6 +82,14 @@ class _GraphMetaAuth(MetaAuthorize):
     def get_roles(self):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_roles)
+
+    def set_user_role(self, user_id, role_id):
+        with self.driver.session() as session:
+            session.write_transaction(self.__bind_user_to_role, user_id, role_id)
+
+    def get_user_admin_status(self, user_id):
+        with self.driver.session() as session:
+            session.read_transaction(self.g)
 
     def add_dataset(self, dataset_id, owner_id, dname=None):
         with self.driver.session() as session:
@@ -360,6 +370,15 @@ class _GraphMetaAuth(MetaAuthorize):
         tx.run("MATCH (r:role {id:'"+role_id+"'})<-[:manages_role]-(o:organization), (u:user {id:'"+user_id+"'})-[h:has_role]->(:role)<-[:manages_role]-(o) DELETE h")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:has_role]->(r)")
         return
+
+    @staticmethod
+    def __has_role(tx, user_id, role_id):
+        # Checks if user has a specific role
+        records = tx.run("MATCH (u:user {id:'"+user_id+"'})-[h:has_role]->(r:role {id:'"+role_id+"'}) RETURN h")
+        for record in records:
+            return True
+        else:
+            return False
 
 if __name__ == "__main__":
     greeter = _GraphMetaAuth("bolt://localhost:7687", "neo4j", "password")
