@@ -27,11 +27,10 @@ class _GraphMetaAuth(MetaAuthorize):
 
             # Create member role
             member_id = str(uuid.uuid4())
-            session.write_transaction(self.__write_role, member_id, "Member")
+            session.write_transaction(self.__write_role, member_id, "member")
             session.write_transaction(self.__bind_role_to_org, member_id, org_id)
 
             for user in users:
-                session.write_transaction(self.__bind_user_to_org, org_id, user['id'])
                 if not session.read_transaction(self.__has_role, user['id'], 'admin'):
                     session.write_transaction(self.__bind_user_to_role, user['id'], member_id)
 
@@ -79,17 +78,13 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__write_role, id, name)
 
-    def get_roles(self):
+    def get_roles(self, org_id = None):
         with self.driver.session() as session:
-            return session.read_transaction(self.__read_roles)
+            return session.read_transaction(self.__read_roles, org_id)
 
     def set_user_role(self, user_id, role_id):
         with self.driver.session() as session:
             session.write_transaction(self.__bind_user_to_role, user_id, role_id)
-
-    def get_user_admin_status(self, user_id):
-        with self.driver.session() as session:
-            session.read_transaction(self.g)
 
     def add_dataset(self, dataset_id, owner_id, dname=None):
         with self.driver.session() as session:
@@ -141,9 +136,9 @@ class _GraphMetaAuth(MetaAuthorize):
 
         return public_field_names
 
-    def set_template_access(self, user_id, template_id):
+    def set_template_access(self, role_id, template_id):
         with self.driver.session() as session:
-            session.write_transaction(self.__bind_user_to_template, user_id, template_id)
+            session.write_transaction(self.__bind_role_to_template, role_id, template_id)
 
     @staticmethod
     def __write_visible_fields(tx, template_id, whitelist):  
@@ -285,8 +280,7 @@ class _GraphMetaAuth(MetaAuthorize):
     @staticmethod
     def __read_visible_fields(tx, dataset_id, user_id):
         result = []
-        #for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:has_role]->(r:role)-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id "):
-        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id "):
+        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:has_role]->(r:role)-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id"):
             result.append(record['id'])
         return result
 
@@ -327,7 +321,7 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_role_to_org(tx, role_id, org_id):
-        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:has_role]->(r)")
+        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:manages_role]->(r)")
         return
 
     @staticmethod
@@ -348,16 +342,6 @@ class _GraphMetaAuth(MetaAuthorize):
             return
         tx.run("MATCH (t:template {id:'"+template_id+"'})<-[:has_template]-(d:dataset), (r:role {id:'"+role_id+"'})-[u:uses_template]->(:template)<-[:has_template]-(d) DELETE u")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (r)-[:uses_template]->(t)")
-        return
-
-    @staticmethod
-    def __bind_user_to_template(tx, user_id, template_id):
-        # TEMPORARY - To test templates without roles
-        records = tx.run("MATCH (u:user {id:'"+user_id+"'})-[h:uses_template]->(t:template {id:'"+template_id+"'}) RETURN h")
-        for record in records:
-            return
-        tx.run("MATCH (t:template {id:'"+template_id+"'})<-[:has_template]-(d:dataset), (u:user {id:'"+user_id+"'})-[h:uses_template]->(:template)<-[:has_template]-(d) DELETE h")
-        result = tx.run("MATCH (u:user {id:'"+user_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (u)-[:uses_template]->(t)")
         return
 
     @staticmethod

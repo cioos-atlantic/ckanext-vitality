@@ -186,6 +186,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
             log.info('Visible fields ' + str(visible_fields))
 
+            # If no relation exists between user and dataset, treat as public
+            if len(visible_fields) == 0:
+                visible_fields = self.meta_authorize.get_visible_fields(dataset, 'public')
+                log.info('Public visible fields  ' + str(visible_fields))
+
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
@@ -283,23 +288,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
 
 
-        # Set user access (default to logged in users get full and public get minimal)
-        # Change this for roles
-        for user in self.meta_authorize.get_users():
-            if user == 'public':
-                self.meta_authorize.set_template_access(user, minimal_id)
-            else:
-                self.meta_authorize.set_template_access(user, full_id)
-        """
-            self.meta_authorize.populate_member_roles()
-            self.meta_authorize.bind
-        """
-        # for user in self.meta_authorize.get_users():
-            # if user is public
-                # add to public role
-            # if user is admin
-                # add to admin role
-            # otherwise, for every member of organization they are in, add to that
+        # Always add access for public and admin roles
+        self.meta_authorize.set_template_access('public', minimal_id)
+        self.meta_authorize.set_template_access('admin', full_id)
+
+        # Add access for any roles in the organization
+        for role in self.meta_authorize.get_roles(pkg_dict['owner_org']):
+            self.meta_authorize.set_template_access(role, full_id)
+            
         return pkg_dict
 
 '''
