@@ -110,9 +110,14 @@ class _GraphMetaAuth(MetaAuthorize):
                 session.write_transaction(self.__write_metadata_field, name, id, template_id)
 
     def add_template(self, dataset_id, template_id, template_name=None):
+        log.info('Creating a new template')
         with self.driver.session() as session:
             session.write_transaction(self.__write_template, template_id, template_name)
             session.write_transaction(self.__bind_template_to_dataset, template_id, dataset_id)
+
+    def get_templates(self, dataset_id):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__read_templates, dataset_id)
 
     def get_metadata_fields(self, dataset_id):
         with self.driver.session() as session:

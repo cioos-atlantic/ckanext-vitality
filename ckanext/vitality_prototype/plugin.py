@@ -253,7 +253,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if f[0] in publically_visible_fields:
                 whitelist[f[0]] = f[1]
         
-        self.meta_authorize.set_visible_fields(dataset_id, 'public', whitelist)
+        self.meta_authorize.set_visible_fields('public', whitelist)
 
         return pkg_dict
 
@@ -267,34 +267,30 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
 
-        full_id = str(uuid.uuid4())
-        full_name = 'Full'
-        minimal_id = str(uuid.uuid4())
-        minimal_name = "Minimal"
-
         log.info("adding default templates")
-        self.meta_authorize.add_full_template(dataset_id, full_id, full_name, generate_default_fields())
-
-        self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name)
-        self.meta_authorize.set_visible_fields(
-            minimal_id,
-            generate_whitelist(
-                default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
+        templates = self.meta_authorize.get_templates(dataset_id)
+        if len(templates) == 0:
+            full_id = str(uuid.uuid4())
+            full_name = 'Full'
+            minimal_id = str(uuid.uuid4())
+            minimal_name = "Minimal"
+            self.meta_authorize.add_full_template(dataset_id, full_id, full_name, generate_default_fields())
+            # Multiple templates being created here. why??? - If templates already exist, skip?
+            self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name)
+            self.meta_authorize.set_visible_fields(
+                minimal_id,
+                generate_whitelist(
+                    default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
+                )
             )
-        )
-    
-        # Adds full and minimal template for each dataset
-
-        log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
-
-
-        # Always add access for public and admin roles
-        self.meta_authorize.set_template_access('public', minimal_id)
-        self.meta_authorize.set_template_access('admin', full_id)
-
-        # Add access for any roles in the organization
-        for role in self.meta_authorize.get_roles(pkg_dict['owner_org']):
-            self.meta_authorize.set_template_access(role, full_id)
+            # Adds full and minimal template for each dataset
+            log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
+            # Always add access for public and admin roles
+            self.meta_authorize.set_template_access('public', minimal_id)
+            self.meta_authorize.set_template_access('admin', full_id)
+            # Add access for any roles in the organization
+            for role in self.meta_authorize.get_roles(pkg_dict['owner_org']):
+                self.meta_authorize.set_template_access(role, full_id)
             
         return pkg_dict
 
