@@ -133,17 +133,33 @@ class _GraphMetaAuth(MetaAuthorize):
 
     def get_public_fields(self, dataset_id):
         public_field_ids =  self.get_visible_fields(dataset_id, user_id='public')
-
         public_field_names = [f[0].encode("utf-8") for f in self.get_metadata_fields(dataset_id).items() if f[1] in public_field_ids]
-
-        #log.info("public field names:")
-        #log.info(public_field_names)
 
         return public_field_names
 
     def set_template_access(self, role_id, template_id):
         with self.driver.session() as session:
             session.write_transaction(self.__bind_role_to_template, role_id, template_id)
+
+    def check_restricted(self, dataset_id):
+        with self.driver.session() as session:
+            template_id = session.read_transaction(self.__get_template_in_use, dataset_id, 'public')
+            template_name = session.read_transaction(self.__get_template_name, template_id)
+            if (str(template_name) == 'Full'):
+                return False
+            else:
+                return True
+
+    @staticmethod
+    def __get_template_in_use(tx, dataset_id, role_id):
+        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'"+role_id+"'}) return t.id as id")
+        for record in records:
+            return record['id']
+
+    @staticmethod
+    def __get_template_name(tx, template_id):
+        result = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name")
+        return result
 
     @staticmethod
     def __write_visible_fields(tx, template_id, whitelist):  
@@ -309,7 +325,7 @@ class _GraphMetaAuth(MetaAuthorize):
             for record in tx.run("MATCH (r:role) RETURN r.name AS name, r.id AS id"):
                 result[record['name']] = record['id']
         else:
-            for record in tx.run("MATCH (r:role)<-[:has_role]-(o:organization {id:'"+ org_id +"'}) RETURN r.name AS name, r.id AS id"):
+            for record in tx.run("MATCH (r:role)<-[:manages_role]-(o:organization {id:'"+ org_id +"'}) RETURN r.name AS name, r.id AS id"):
                 result[record['name']] = record['id']
         return result
 

@@ -184,11 +184,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             
             # Load white-listed fields
             visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
-            log.info('Visible fields ' + str(visible_fields))
 
             # If no relation exists between user and dataset, treat as public
             if len(visible_fields) == 0:
-                visible_fields = self.meta_authorize.get_visible_fields(dataset, 'public')
+                visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
                 log.info('Public visible fields  ' + str(visible_fields))
 
             # Filter metadata fields
@@ -205,6 +204,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # Inject empty resources list if resources has been filtered.
             if 'resources' not in pkg_dict:
                 pkg_dict['resources'] = []
+
+            log.info('Checking if restricted')
+            if self.meta_authorize.check_restricted(dataset_id):
+                log.info(pkg_dict['notes_translated'])
+                pkg_dict['notes_translated']['en']= "[RESTRICTED] " + pkg_dict['notes_translated']['en']
+                pkg_dict['notes_translated']['fr']= "[RESTRICTED] " + pkg_dict['notes_translated']['fr']
 
             # Add filler for fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
@@ -263,6 +268,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
+        log.info(pkg_dict['notes'])
+        if pkg_dict['notes'] != None:
+            log.info(pkg_dict['notes'].encode("utf-8"))
+
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
@@ -289,8 +298,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             self.meta_authorize.set_template_access('public', minimal_id)
             self.meta_authorize.set_template_access('admin', full_id)
             # Add access for any roles in the organization
-            for role in self.meta_authorize.get_roles(pkg_dict['owner_org']):
-                self.meta_authorize.set_template_access(role, full_id)
+            log.info(self.meta_authorize.get_roles(pkg_dict['owner_org']))
+            for role in self.meta_authorize.get_roles(pkg_dict['owner_org']).values():
+                self.meta_authorize.set_template_access(str(role), full_id)
             
         return pkg_dict
 
