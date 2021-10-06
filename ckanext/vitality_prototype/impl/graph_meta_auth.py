@@ -95,7 +95,7 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__write_dataset, dataset_id, dname)
             session.write_transaction(self.__bind_dataset_to_org, owner_id, dataset_id)
 
-    def add_full_template(self, dataset_id, template_id, template_name, fields):
+    def add_full_template(self, dataset_id, template_id, template_name, fields, template_description = None):
         with self.driver.session() as session:
             # Default templates already exist, skipping
             if session.read_transaction(self.__read_templates, dataset_id):
@@ -103,17 +103,21 @@ class _GraphMetaAuth(MetaAuthorize):
                 return
 
             # Add full template
-            self.add_template(dataset_id, template_id, template_name)
+            self.add_template(dataset_id, template_id, template_name, template_description)
 
             # create the fields as well
             for name,id in fields.items():
                 session.write_transaction(self.__write_metadata_field, name, id, template_id)
 
-    def add_template(self, dataset_id, template_id, template_name=None):
+    def add_template(self, dataset_id, template_id, template_name=None, template_description=None):
         log.info('Creating a new template')
         with self.driver.session() as session:
-            session.write_transaction(self.__write_template, template_id, template_name)
+            session.write_transaction(self.__write_template, template_id, template_name, template_description)
             session.write_transaction(self.__bind_template_to_dataset, template_id, dataset_id)
+
+    def set_dataset_description(self, dataset_id, description):
+        with self.driver.session() as session:
+            session.write_transaction(self.__write_dataset_description, dataset_id, description)
 
     def get_templates(self, dataset_id):
         with self.driver.session() as session:
@@ -151,21 +155,9 @@ class _GraphMetaAuth(MetaAuthorize):
                 return True
 
     @staticmethod
-    def __get_template_in_use(tx, dataset_id, role_id):
-        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'"+role_id+"'}) return t.id as id")
-        for record in records:
-            return record['id']
-
-    @staticmethod
-    def __get_template_name(tx, template_id):
-        result = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name")
-        return result
-
-    @staticmethod
     def __write_visible_fields(tx, template_id, whitelist):  
         # First remove all existing 'can_see' relationships between the template, dataset and its elements
         tx.run("MATCH (e:element)<-[c:can_see]-(t:template {id:'"+template_id+"'}) DELETE c")
-
         for name,id in whitelist.items():
             result = tx.run("MATCH (e:element {id:'"+id+"'}), (t:template {id:'"+template_id+"'}) CREATE (t)-[:can_see]->(e)")
         return
@@ -178,6 +170,13 @@ class _GraphMetaAuth(MetaAuthorize):
             result = tx.run("CREATE (:dataset { id: '"+id+"', name:'"+"".join([c for c in dname if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'})")
         else:
             result = tx.run("CREATE (:dataset { id: '"+id+"'})")
+        return
+
+    @staticmethod
+    def __write_dataset_description(tx, id, description):
+        log.info("writing description")
+        log.info(description)
+        result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.description='"+"".join([c for c in description if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
     @staticmethod
@@ -218,14 +217,16 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
-    def __write_template(tx, id, name=None):
+    def __write_template(tx, id, name=None, description = None):
         records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id AS id")
         for record in records:
             return record['id']
-        if(name==None):
-            tx.run("CREATE (t:template {id:'"+id+"'})")
-        else:
-            tx.run("CREATE (t:template {id:'"+id+"', name:'"+ str(name) +"'})")
+        properties = ""
+        if(name!=None):
+            properties+= ", name:'"+ str(name) +"'"
+        if(description!=None):
+            properties+= ", description:'"+ str(description) +"'"
+        tx.run("CREATE (t:template {id:'"+id+ "'" + properties + "})")
         return None
 
     @staticmethod
@@ -290,6 +291,17 @@ class _GraphMetaAuth(MetaAuthorize):
         for record in records:
             return record['id']
         return None
+
+    @staticmethod
+    def __get_template_in_use(tx, dataset_id, role_id):
+        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'"+role_id+"'}) return t.id as id")
+        for record in records:
+            return record['id']
+
+    @staticmethod
+    def __get_template_name(tx, template_id):
+        result = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name")
+        return result
 
     @staticmethod
     def __read_users(tx):

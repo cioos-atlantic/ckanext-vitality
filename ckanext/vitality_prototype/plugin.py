@@ -206,10 +206,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['resources'] = []
 
             log.info('Checking if restricted')
+
+            # If the metadata is restricted in any way will add a "resource" so a tag can be generated
             if self.meta_authorize.check_restricted(dataset_id):
-                log.info(pkg_dict['notes_translated'])
-                pkg_dict['notes_translated']['en']= "[RESTRICTED] " + pkg_dict['notes_translated']['en']
-                pkg_dict['notes_translated']['fr']= "[RESTRICTED] " + pkg_dict['notes_translated']['fr']
+                restricted_resource = {
+                    "format" : "Restricted"
+                }
+                pkg_dict['resources'].append(restricted_resource)
 
             # Add filler for fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
@@ -269,8 +272,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         dataset_id = pkg_dict["id"].encode("utf-8")
 
         log.info(pkg_dict['notes'])
-        if pkg_dict['notes'] != None:
-            log.info(pkg_dict['notes'].encode("utf-8"))
 
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
 
@@ -279,13 +280,18 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("adding default templates")
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) == 0:
+            if pkg_dict['notes'] != None:
+                dataset_notes = pkg_dict['notes'].encode("utf-8")
+                log.info(dataset_notes)
+                self.meta_authorize.set_dataset_description(dataset_id, dataset_notes)
             full_id = str(uuid.uuid4())
             full_name = 'Full'
+            full_description = "This is the full, unrestricted template. Choosing this will display the full set of metadata for the assigned role."
             minimal_id = str(uuid.uuid4())
             minimal_name = "Minimal"
-            self.meta_authorize.add_full_template(dataset_id, full_id, full_name, generate_default_fields())
-            # Multiple templates being created here. why??? - If templates already exist, skip?
-            self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name)
+            minimal_description = "This template restricts some metadata for the chosen role. Restricted fields include location and temporal data"
+            self.meta_authorize.add_full_template(dataset_id, full_id, full_name, generate_default_fields(), full_description)
+            self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
             self.meta_authorize.set_visible_fields(
                 minimal_id,
                 generate_whitelist(
