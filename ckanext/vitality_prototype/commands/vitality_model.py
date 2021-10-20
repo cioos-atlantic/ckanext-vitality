@@ -99,8 +99,12 @@ class VitalityModel(CkanCommand):
         
         print(org_list)
 
+        admin_list = self.meta_authorize.get_admins()
+
         for o in org_list:
             self.meta_authorize.add_org(o['id'],o['users'],o['name'])
+            for admin in admin_list:
+                self.meta_authorize.set_organizational_control(admin, o['id'])
             continue
 
     def seed_groups(self, context):
@@ -128,6 +132,7 @@ class VitalityModel(CkanCommand):
             self.meta_authorize.add_user(user_id)
             if u['sysadmin']:
                 self.meta_authorize.set_user_role(user_id, 'admin')
+            self.meta_authorize.set_user_gid(user_id, "guest")
 
         # Create the public user for people not logged in.
         # TODO Public users might already be

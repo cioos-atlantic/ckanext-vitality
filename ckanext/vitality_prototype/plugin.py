@@ -97,6 +97,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("Initial pkg_dict:")
         log.info(pkg_dict)
 
+        log.info("Description")
+        notes = pkg_dict['notes'].encode("UTF-8")
+        log.info(notes)
+        log.info(type(notes))
+
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
 
@@ -151,7 +156,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_search(self, search_results, search_params):
-
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
             log.info('Public user')
@@ -161,6 +165,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             user_id = user.id
             log.info(user)
             log.info('Request from ' + user_id)
+
+        log.info(search_params)
 
         # Gets the number of results matching the search parameters (total)
         log.info('# of total results ' + str(search_results['count']))
@@ -205,14 +211,15 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'resources' not in pkg_dict:
                 pkg_dict['resources'] = []
 
-            log.info('Checking if restricted')
-
             # If the metadata is restricted in any way will add a "resource" so a tag can be generated
-            if self.meta_authorize.check_restricted(dataset_id):
-                restricted_resource = {
-                    "format" : "Restricted"
-                }
-                pkg_dict['resources'].append(restricted_resource)
+            # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
+            public_dataset_access = self.meta_authorize.get_template_access_for_role(dataset_id, 'public')
+            if(public_dataset_access != "Full"):
+                pkg_dict['resources'].append({"format" : "Restricted data"})
+
+            user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
+            if(user_dataset_access != "Full"):
+                pkg_dict['resources'].append({"format" : "Restricted metadata"})
 
             # Add filler for fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
@@ -271,8 +278,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
-        log.info(pkg_dict['notes'])
-
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
@@ -280,10 +285,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("adding default templates")
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) == 0:
-            if pkg_dict['notes'] != None:
-                dataset_notes = pkg_dict['notes'].encode("utf-8")
-                log.info(dataset_notes)
-                self.meta_authorize.set_dataset_description(dataset_id, dataset_notes)
+            if 'notes' in pkg_dict and pkg_dict['notes']:
+                log.info(type(pkg_dict['notes']))
+                try:
+                    dataset_notes = json.loads(pkg_dict['notes'].encode('utf-8'))
+                    self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
+                    self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
+                except ValueError as err:
+                    log.info("No description found")
             full_id = str(uuid.uuid4())
             full_name = 'Full'
             full_description = "This is the full, unrestricted template. Choosing this will display the full set of metadata for the assigned role."
@@ -307,6 +316,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info(self.meta_authorize.get_roles(pkg_dict['owner_org']))
             for role in self.meta_authorize.get_roles(pkg_dict['owner_org']).values():
                 self.meta_authorize.set_template_access(str(role), full_id)
+
+            #Add serves for organizations
+            
             
         return pkg_dict
 

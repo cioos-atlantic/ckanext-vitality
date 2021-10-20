@@ -115,9 +115,9 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__write_template, template_id, template_name, template_description)
             session.write_transaction(self.__bind_template_to_dataset, template_id, dataset_id)
 
-    def set_dataset_description(self, dataset_id, description):
+    def set_dataset_description(self, dataset_id, language, description):
         with self.driver.session() as session:
-            session.write_transaction(self.__write_dataset_description, dataset_id, description)
+            session.write_transaction(self.__write_dataset_description, dataset_id, language, description)
 
     def get_templates(self, dataset_id):
         with self.driver.session() as session:
@@ -145,14 +145,56 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__bind_role_to_template, role_id, template_id)
 
-    def check_restricted(self, dataset_id):
+    def get_template_access_for_role(self, dataset_id, role_id):
         with self.driver.session() as session:
-            template_id = session.read_transaction(self.__get_template_in_use, dataset_id, 'public')
-            template_name = session.read_transaction(self.__get_template_name, template_id)
-            if (str(template_name) == 'Full'):
-                return False
+            template_id = session.read_transaction(self.__get_template_access_for_role, dataset_id, role_id)
+            if template_id != None:
+                template_name = session.read_transaction(self.__get_template_name, template_id)
+                return str(template_name)
             else:
-                return True
+                return None
+
+    def get_template_access_for_user(self, dataset_id, user_id):
+        with self.driver.session() as session:
+            template_id = session.read_transaction(self.__get_template_access_for_user, dataset_id, user_id)
+            if template_id != None:
+                template_name = session.read_transaction(self.__get_template_name, template_id)
+                return str(template_name)
+            else:
+                return None
+
+    def set_user_gid(self, user_id, gid):
+        with self.driver.session() as session:
+            session.write_transaction(self.__write_user_gid, user_id, gid)
+
+    def get_admins(self):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__read_admin_users)
+    
+    # Used to set access for users to edit org settings on the landing page
+    def set_organizational_control(self, user_id, org_id):
+        with self.driver.session() as session:
+            log.info("Binding user to org")
+            log.info(user_id)
+            log.info(org_id)
+            session.write_transaction(self.__bind_user_to_org, user_id, org_id)
+
+    @staticmethod
+    def __bind_user_to_org(tx, user_id, org_id):
+        tx.run("MATCH (u:user {id:'"+user_id+"'}), (o:organization {id:'"+org_id+"'}) CREATE (u)-[:serves]->(o)")
+        return
+
+    @staticmethod
+    def __read_admin_users(tx):
+        result = []
+        for record in tx.run("MATCH (:role {id:'admin'})<-[:has_role]-(u:user) return u.id AS id"):
+            result.append(record['id'])
+        log.info(result)
+        return result
+
+    @staticmethod
+    def __write_user_gid(tx, user_id, gid):
+        tx.run("MATCH (u:user {id:'"+user_id+"'}) SET u.gid = '"+gid+"'")
 
     @staticmethod
     def __write_visible_fields(tx, template_id, whitelist):  
@@ -173,10 +215,10 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
-    def __write_dataset_description(tx, id, description):
+    def __write_dataset_description(tx, id, language, description):
         log.info("writing description")
         log.info(description)
-        result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.description='"+"".join([c for c in description if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
+        result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.description_"+language+"='"+"".join([c for c in description if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
     @staticmethod
@@ -228,11 +270,6 @@ class _GraphMetaAuth(MetaAuthorize):
             properties+= ", description:'"+ str(description) +"'"
         tx.run("CREATE (t:template {id:'"+id+ "'" + properties + "})")
         return None
-
-    @staticmethod
-    def __bind_user_to_org(tx, org_id, user_id):
-        result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (o)-[:has_member]->(u)")
-        return
 
     @staticmethod
     def __bind_user_to_group(tx, group_id, user_id):
@@ -293,15 +330,22 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
-    def __get_template_in_use(tx, dataset_id, role_id):
+    def __get_template_access_for_role(tx, dataset_id, role_id):
         records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'"+role_id+"'}) return t.id as id")
         for record in records:
             return record['id']
 
     @staticmethod
+    def __get_template_access_for_user(tx, dataset_id, user_id):
+        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role)<-[:has_role]-(u:user {id:'"+user_id+"'}) return t.id as id")
+        for record in records:
+            return record['id']
+
+    @staticmethod
     def __get_template_name(tx, template_id):
-        result = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name")
-        return result
+        records = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name AS name")
+        for record in records:
+            return record['name']
 
     @staticmethod
     def __read_users(tx):
