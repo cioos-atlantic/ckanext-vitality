@@ -45,13 +45,13 @@ class _GraphMetaAuth(MetaAuthorize):
             for user in users:
                 session.write_transaction(self.__bind_user_to_group, group_id, user['id'])
 
-    def add_user(self, user_id):
+    def add_user(self, user_id, user_name = None, user_email = None):
         with self.driver.session() as session:
             # Check to see if the user already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_user, user_id) != None:
                 return
 
-            session.write_transaction(self.__write_user, user_id)
+            session.write_transaction(self.__write_user, user_id, user_name, user_email)
     
     def add_metadata_fields(self, dataset_id, fields):
         with self.driver.session() as session:
@@ -65,26 +65,6 @@ class _GraphMetaAuth(MetaAuthorize):
                 # Only add the new field if a field with that name doesn't already exist
                 if f[0] not in existing_names:
                     session.write_transaction(self.__write_metadata_field, f[0], str(f[1]), dataset_id)
-
-    def get_users(self):
-        with self.driver.session() as session:
-            return session.read_transaction(self.__read_users)
-
-    def get_dataset(self, dataset_id):
-        with self.driver.session() as session:
-            return session.read_transaction(self.__get_dataset, dataset_id)
-
-    def add_role(self, id, name=None):
-        with self.driver.session() as session:
-            session.write_transaction(self.__write_role, id, name)
-
-    def get_roles(self, org_id = None):
-        with self.driver.session() as session:
-            return session.read_transaction(self.__read_roles, org_id)
-
-    def set_user_role(self, user_id, role_id):
-        with self.driver.session() as session:
-            session.write_transaction(self.__bind_user_to_role, user_id, role_id)
 
     def add_dataset(self, dataset_id, owner_id, dname=None):
         with self.driver.session() as session:
@@ -115,9 +95,21 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__write_template, template_id, template_name, template_description)
             session.write_transaction(self.__bind_template_to_dataset, template_id, dataset_id)
 
-    def set_dataset_description(self, dataset_id, language, description):
+    def get_users(self):
         with self.driver.session() as session:
-            session.write_transaction(self.__write_dataset_description, dataset_id, language, description)
+            return session.read_transaction(self.__read_users)
+
+    def get_dataset(self, dataset_id):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__get_dataset, dataset_id)
+
+    def add_role(self, id, name=None):
+        with self.driver.session() as session:
+            session.write_transaction(self.__write_role, id, name)
+
+    def get_roles(self, org_id = None):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__read_roles, org_id)
 
     def get_templates(self, dataset_id):
         with self.driver.session() as session:
@@ -131,19 +123,10 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_visible_fields, dataset_id, user_id)
 
-    def set_visible_fields(self, template_id, whitelist):
-        with self.driver.session() as session:
-            session.write_transaction(self.__write_visible_fields, template_id, whitelist)
-
     def get_public_fields(self, dataset_id):
         public_field_ids =  self.get_visible_fields(dataset_id, user_id='public')
         public_field_names = [f[0].encode("utf-8") for f in self.get_metadata_fields(dataset_id).items() if f[1] in public_field_ids]
-
         return public_field_names
-
-    def set_template_access(self, role_id, template_id):
-        with self.driver.session() as session:
-            session.write_transaction(self.__bind_role_to_template, role_id, template_id)
 
     def get_template_access_for_role(self, dataset_id, role_id):
         with self.driver.session() as session:
@@ -161,15 +144,31 @@ class _GraphMetaAuth(MetaAuthorize):
                 template_name = session.read_transaction(self.__get_template_name, template_id)
                 return str(template_name)
             else:
-                return None
-
-    def set_user_gid(self, user_id, gid):
-        with self.driver.session() as session:
-            session.write_transaction(self.__write_user_gid, user_id, gid)
+                return None    
 
     def get_admins(self):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_admin_users)
+
+    def set_user_role(self, user_id, role_id):
+        with self.driver.session() as session:
+            session.write_transaction(self.__bind_user_to_role, user_id, role_id)
+
+    def set_dataset_description(self, dataset_id, language, description):
+        with self.driver.session() as session:
+            session.write_transaction(self.__write_dataset_description, dataset_id, language, description)
+
+    def set_visible_fields(self, template_id, whitelist):
+        with self.driver.session() as session:
+            session.write_transaction(self.__write_visible_fields, template_id, whitelist)
+
+    def set_template_access(self, role_id, template_id):
+        with self.driver.session() as session:
+            session.write_transaction(self.__bind_role_to_template, role_id, template_id)
+
+    def set_user_gid(self, user_id, gid):
+        with self.driver.session() as session:
+            session.write_transaction(self.__write_user_gid, user_id, gid)
     
     # Used to set access for users to edit org settings on the landing page
     def set_organizational_control(self, user_id, org_id):
@@ -230,8 +229,13 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
-    def __write_user(tx, id):
-        result = tx.run("CREATE (u:user {id:'"+id+"'})")
+    def __write_user(tx, id, username= None, email= None):
+        extra_properties = ""
+        if(username):
+            extra_properties += ", username: '" + username + "'"
+        if(email):
+            extra_properties += ", email: '" + email +"'"
+        result = tx.run("CREATE (u:user {id:'"+id+"'" +extra_properties + "})")
         return
 
     @staticmethod
