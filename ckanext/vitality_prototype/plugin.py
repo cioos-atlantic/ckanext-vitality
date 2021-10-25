@@ -100,7 +100,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("Description")
         notes = pkg_dict['notes'].encode("UTF-8")
         log.info(notes)
-        log.info(type(notes))
 
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
@@ -213,9 +212,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # If the metadata is restricted in any way will add a "resource" so a tag can be generated
             # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
-            public_dataset_access = self.meta_authorize.get_template_access_for_role(dataset_id, 'public')
-            if(public_dataset_access != "Full"):
-                pkg_dict['resources'].append({"format" : "Restricted data"})
+            pkg_dict['resources'].append({"format" : "Restricted data"})
 
             user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
             if(user_dataset_access != "Full"):
