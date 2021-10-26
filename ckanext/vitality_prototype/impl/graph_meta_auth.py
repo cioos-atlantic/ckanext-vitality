@@ -94,7 +94,7 @@ class _GraphMetaAuth(MetaAuthorize):
 
     def get_admins(self):
         with self.driver.session() as session:
-            return session.read_transaction(self.__read_admin_users)
+            return session.read_transaction(self.__read_users_admins)
 
     def get_dataset(self, dataset_id):
         with self.driver.session() as session:
@@ -145,7 +145,7 @@ class _GraphMetaAuth(MetaAuthorize):
 
     def set_dataset_description(self, dataset_id, language, description):
         with self.driver.session() as session:
-            session.write_transaction(self.__write_dataset_description, dataset_id, language, description)
+            session.write_transaction(self.__set_dataset_description, dataset_id, language, description)
 
     def set_template_access(self, role_id, template_id):
         with self.driver.session() as session:
@@ -162,7 +162,7 @@ class _GraphMetaAuth(MetaAuthorize):
 
     def set_user_gid(self, user_id, gid):
         with self.driver.session() as session:
-            session.write_transaction(self.__write_user_gid, user_id, gid)
+            session.write_transaction(self.__set_user_gid, user_id, gid)
 
     def set_user_role(self, user_id, role_id):
         with self.driver.session() as session:
@@ -170,32 +170,67 @@ class _GraphMetaAuth(MetaAuthorize):
 
     def set_visible_fields(self, template_id, whitelist):
         with self.driver.session() as session:
-            session.write_transaction(self.__write_visible_fields, template_id, whitelist)
-
-
-
-    #TODO Change to __read_users_admin
-    @staticmethod
-    def __read_admin_users(tx):
-        result = []
-        for record in tx.run("MATCH (:role {id:'admin'})<-[:has_role]-(u:user) return u.id AS id"):
-            result.append(record['id'])
-        log.info(result)
-        return result
+            session.write_transaction(self.__bind_fields_to_template, template_id, whitelist)
 
     @staticmethod
-    def __read_users(tx):
-        result = []
-        for record in tx.run("MATCH (u:user) RETURN u.id as id"):
-            result.append(record['id'])
-        return result
+    def __get_dataset(tx, id):
+        records = tx.run("MATCH (d:dataset {id:'"+id+"'}) return d.id as id")
+        for record in records:
+            return record['id']
+        return None
 
     @staticmethod
-    def __read_visible_fields(tx, dataset_id, user_id):
-        result = []
-        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:has_role]->(r:role)-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id"):
-            result.append(record['id'])
-        return result
+    def __get_group(tx, id):
+        records = tx.run("MATCH (g:group {id:'"+id+"'}) return g.id as id")   
+        for record in records:
+            return record['id']
+        return None
+
+    @staticmethod
+    def __get_org(tx, id):
+        records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id as id")      
+        for record in records:
+            return record['id']    
+        return None
+
+    @staticmethod
+    def __get_role(tx, id):
+        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
+        for record in records:
+            return record['id']
+        return None
+
+    @staticmethod
+    def __get_template(tx, id):
+        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id as id")
+        for record in records:
+            return record['id']
+        return None
+
+    @staticmethod
+    def __get_template_name(tx, template_id):
+        records = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name AS name")
+        for record in records:
+            return record['name']
+
+    @staticmethod
+    def __get_template_access_for_role(tx, dataset_id, role_id):
+        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'"+role_id+"'}) return t.id as id")
+        for record in records:
+            return record['id']
+
+    @staticmethod
+    def __get_template_access_for_user(tx, dataset_id, user_id):
+        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role)<-[:has_role]-(u:user {id:'"+user_id+"'}) return t.id as id")
+        for record in records:
+            return record['id']
+
+    @staticmethod 
+    def __get_user(tx, id):
+        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id")   
+        for record in records:
+            return record['id']
+        return None
 
     @staticmethod
     def __read_elements(tx, dataset_id):
@@ -205,14 +240,6 @@ class _GraphMetaAuth(MetaAuthorize):
             #log.debug("record: %s", str(record))
             result[record['name']] = record['id']
         return result
-
-    #TODO Change to __read_org
-    @staticmethod
-    def __get_org(tx, id):
-        records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id as id")      
-        for record in records:
-            return record['id']    
-        return None
 
     @staticmethod
     def __read_roles(tx, org_id=None):
@@ -240,64 +267,27 @@ class _GraphMetaAuth(MetaAuthorize):
                 result[record['name']] = record['id']
         return result
 
-    #TODO Change to __read_user
-    @staticmethod 
-    def __get_user(tx, id):
-        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id")   
-        for record in records:
-            return record['id']
-        return None
-    
-    #TODO Change to __read_group
     @staticmethod
-    def __get_group(tx, id):
-        records = tx.run("MATCH (g:group {id:'"+id+"'}) return g.id as id")   
-        for record in records:
-            return record['id']
-        return None
-
-    # TODO Change to __read_dataset
-    @staticmethod
-    def __get_dataset(tx, id):
-        records = tx.run("MATCH (d:dataset {id:'"+id+"'}) return d.id as id")
-        for record in records:
-            return record['id']
-        return None
-
-    # TODO Change to __read_role
-    @staticmethod
-    def __get_role(tx, id):
-        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
-        for record in records:
-            return record['id']
-        return None
-
-    # TODO Change to __read_template
-    @staticmethod
-    def __get_template(tx, id):
-        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id as id")
-        for record in records:
-            return record['id']
-        return None
-
-    # TODO Change to __read_template_name
-    @staticmethod
-    def __get_template_name(tx, template_id):
-        records = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name AS name")
-        for record in records:
-            return record['name']
+    def __read_users(tx):
+        result = []
+        for record in tx.run("MATCH (u:user) RETURN u.id as id"):
+            result.append(record['id'])
+        return result
 
     @staticmethod
-    def __get_template_access_for_role(tx, dataset_id, role_id):
-        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'"+role_id+"'}) return t.id as id")
-        for record in records:
-            return record['id']
+    def __read_users_admins(tx):
+        result = []
+        for record in tx.run("MATCH (:role {id:'admin'})<-[:has_role]-(u:user) return u.id AS id"):
+            result.append(record['id'])
+        log.info(result)
+        return result
 
     @staticmethod
-    def __get_template_access_for_user(tx, dataset_id, user_id):
-        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role)<-[:has_role]-(u:user {id:'"+user_id+"'}) return t.id as id")
-        for record in records:
-            return record['id']
+    def __read_visible_fields(tx, dataset_id, user_id):
+        result = []
+        for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:has_role]->(r:role)-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id"):
+            result.append(record['id'])
+        return result
 
     @staticmethod
     def __write_dataset(tx,id,dname=None):
@@ -364,22 +354,19 @@ class _GraphMetaAuth(MetaAuthorize):
         result = tx.run("CREATE (u:user {id:'"+id+"'" +extra_properties + "})")
         return
 
-    # TODO Change to __set_dataset_description
     @staticmethod
-    def __write_dataset_description(tx, id, language, description):
+    def __set_dataset_description(tx, id, language, description):
         log.info("writing description")
         log.info(description)
         result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.description_"+language+"='"+"".join([c for c in description if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
-    # Change to __set_user_gid
     @staticmethod
-    def __write_user_gid(tx, user_id, gid):
+    def __set_user_gid(tx, user_id, gid):
         tx.run("MATCH (u:user {id:'"+user_id+"'}) SET u.gid = '"+gid+"'")   
 
-    # TODO Change to __bind_fields_to_template
     @staticmethod
-    def __write_visible_fields(tx, template_id, whitelist):  
+    def __bind_fields_to_template(tx, template_id, whitelist):  
         # First remove all existing 'can_see' relationships between the template, dataset and its elements
         tx.run("MATCH (e:element)<-[c:can_see]-(t:template {id:'"+template_id+"'}) DELETE c")
         for name,id in whitelist.items():
