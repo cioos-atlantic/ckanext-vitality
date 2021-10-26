@@ -79,9 +79,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info(context)
 
         log.info("Now checking if this is beforeIndex")
-        
         log.info(context['package'].type)
-
         if context['package'].type != 'dataset':
             log.info("This pkg is not a dataset. Let it through unchanged.")
             return pkg_dict
@@ -93,13 +91,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
 
         log.info("This is not before index, filtering")
-
         log.info("Initial pkg_dict:")
         log.info(pkg_dict)
 
-        log.info("Description")
+        # Description
         notes = pkg_dict['notes'].encode("UTF-8")
-        log.info(notes)
 
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
@@ -111,7 +107,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
-
         if context['auth_user_obj'] == None:
             user_id = 'public'   
         else:
@@ -173,10 +168,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
         result_count = len(datasets)
-        log.info('# of results loaded' + str(result_count))
-    
-        log.info('Parsing search data')
+        log.info('# of results loaded' + str(result_count))        
+        
+        # Gets the total number of results matching the search parameters
+        log.info('# of results ' + str(len(search_results)))
+
         # Go through each of the datasets returned in the results
+        log.info('Parsing search data')
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
 
@@ -214,11 +212,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
             pkg_dict['resources'].append({"format" : "Restricted data"})
 
+            # If current user does not have full access to the metadata, tag the dataset as such
             user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
             if(user_dataset_access != "Full"):
                 pkg_dict['resources'].append({"format" : "Restricted metadata"})
 
-            # Add filler for fields with no value present so they can be harvested
+            # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
             if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
@@ -227,9 +226,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-        # Gets the number of results matching the search parameters
-        log.info('# of results ' + str(len(search_results)))
-
 
         return search_results
 
@@ -290,12 +286,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                     self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
                 except ValueError as err:
                     log.info("No description found")
+
+            # Generate an id, name, and description for the default templates (full and minimal)
+            # TODO Create a better description based on the final
             full_id = str(uuid.uuid4())
             full_name = 'Full'
             full_description = "This is the full, unrestricted template. Choosing this will display the full set of metadata for the assigned role."
             minimal_id = str(uuid.uuid4())
             minimal_name = "Minimal"
             minimal_description = "This template restricts some metadata for the chosen role. Restricted fields include location and temporal data"
+
+            # Adds the full and minimal template
             self.meta_authorize.add_full_template(dataset_id, full_id, full_name, generate_default_fields(), full_description)
             self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
             self.meta_authorize.set_visible_fields(
@@ -304,11 +305,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                     default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
                 )
             )
-            # Adds full and minimal template for each dataset
+            
             log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
+
             # Always add access for public and admin roles
+            # TODO Discuss change default for public?
             self.meta_authorize.set_template_access('public', minimal_id)
             self.meta_authorize.set_template_access('admin', full_id)
+
             # Add access for any roles in the organization
             log.info(self.meta_authorize.get_roles(pkg_dict['owner_org']))
             for role in self.meta_authorize.get_roles(pkg_dict['owner_org']).values():
