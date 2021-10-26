@@ -4,8 +4,9 @@
 # https://aka.ms/yaml
 
 trigger:
-- development
 - main
+
+pr: none
 
 pool: Default
 
