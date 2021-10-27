@@ -74,7 +74,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
-        
         log.info("Context")
         log.info(context)
 
@@ -146,7 +145,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         log.info("Final pkg_dict:")
         log.info(pkg_dict)
-
         return pkg_dict
 
     def after_search(self, search_results, search_params):
@@ -226,7 +224,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-
         return search_results
 
     def after_create(self, context, pkg_dict):
