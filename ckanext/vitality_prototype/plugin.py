@@ -297,7 +297,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             minimal_description = "This template restricts some metadata for the chosen role. Restricted fields include location and temporal data"
 
             # Adds the full and minimal template
-            self.meta_authorize.add_full_template(dataset_id, full_id, full_name, generate_default_fields(), full_description)
+            self.meta_authorize.add_template_full(dataset_id, full_id, full_name, generate_default_fields(), full_description)
             self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
             self.meta_authorize.set_visible_fields(
                 minimal_id,
