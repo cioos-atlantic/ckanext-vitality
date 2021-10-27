@@ -78,9 +78,8 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__bind_template_to_dataset, template_id, dataset_id)        
     
     # Adds template and also adds the fields 
-    # TODO Change name to add_template_full
     # TODO Generate fields separately and set instead of two different instantiation methods
-    def add_full_template(self, dataset_id, template_id, template_name, fields, template_description = None):
+    def add_template_full(self, dataset_id, template_id, template_name, fields, template_description = None):
         with self.driver.session() as session:
             # Default templates already exist, skipping
             if session.read_transaction(self.__read_templates, dataset_id):
@@ -152,12 +151,8 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__bind_role_to_template, role_id, template_id)
 
     # Used to set access for users to edit org settings on the landing page
-    # TODO Change name to set_user_admin_form_access
-    def set_organizational_control(self, user_id, org_id):
+    def set_admin_form_access(self, user_id, org_id):
         with self.driver.session() as session:
-            log.info("Binding user to org")
-            log.info(user_id)
-            log.info(org_id)
             session.write_transaction(self.__bind_user_to_org, user_id, org_id)
 
     def set_user_gid(self, user_id, gid):
@@ -191,20 +186,6 @@ class _GraphMetaAuth(MetaAuthorize):
         records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id as id")      
         for record in records:
             return record['id']    
-        return None
-
-    @staticmethod
-    def __get_role(tx, id):
-        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
-        for record in records:
-            return record['id']
-        return None
-
-    @staticmethod
-    def __get_template(tx, id):
-        records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id as id")
-        for record in records:
-            return record['id']
         return None
 
     @staticmethod
