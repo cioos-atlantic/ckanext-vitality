@@ -74,15 +74,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
-        # Temporarily disabled
-        """
         log.info("Context")
         log.info(context)
 
         log.info("Now checking if this is beforeIndex")
-        
         log.info(context['package'].type)
-
         if context['package'].type != 'dataset':
             log.info("This pkg is not a dataset. Let it through unchanged.")
             return pkg_dict
@@ -92,25 +88,29 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info("This is before index we're done here.")
             return pkg_dict
 
-        log.info("This is not before index, filtering")
 
+        log.info("This is not before index, filtering")
         log.info("Initial pkg_dict:")
         log.info(pkg_dict)
 
+        # Description
+        notes = pkg_dict['notes'].encode("UTF-8")
 
+        # Decode unicode id...
+        dataset_id = pkg_dict["id"].encode("utf-8")
+
+        # Check to see if the dataset has just been created
+        if(self.meta_authorize.get_dataset(dataset_id) == None):
+            log.info("Dataset not in model yet. Returning")
+            return pkg_dict
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
-
         if context['auth_user_obj'] == None:
             user_id = 'public'   
         else:
             user = context['auth_user_obj']
             user_id = user.id
-
-
-        # Decode unicode id...
-        dataset_id = pkg_dict["id"].encode("utf-8")
 
         # Load dataset fields
         dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
@@ -145,14 +145,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         log.info("Final pkg_dict:")
         log.info(pkg_dict)
-        """
         return pkg_dict
 
     def after_search(self, search_results, search_params):
-        return search_results
-
-        # Temporarily disabled
-        """   
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
             log.info('Public user')
@@ -160,8 +155,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         else:
             user = toolkit.c.userobj
             user_id = user.id
+            log.info(user)
             log.info('Request from ' + user_id)
-        
+
+        log.info(search_params)
 
         # Gets the number of results matching the search parameters (total)
         log.info('# of total results ' + str(search_results['count']))
@@ -169,10 +166,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
         result_count = len(datasets)
-        log.info('# of results loaded' + str(result_count))
-    
-        log.info('Parsing search data')
+        log.info('# of results loaded' + str(result_count))        
+        
+        # Gets the total number of results matching the search parameters
+        log.info('# of results ' + str(len(search_results)))
+
         # Go through each of the datasets returned in the results
+        log.info('Parsing search data')
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
 
@@ -185,6 +185,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             
             # Load white-listed fields
             visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
+
+            # If no relation exists between user and dataset, treat as public
+            if len(visible_fields) == 0:
+                visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
+                log.info('Public visible fields  ' + str(visible_fields))
 
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
@@ -201,7 +206,16 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'resources' not in pkg_dict:
                 pkg_dict['resources'] = []
 
-            # Add filler for fields with no value present so they can be harvested
+            # If the metadata is restricted in any way will add a "resource" so a tag can be generated
+            # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
+            pkg_dict['resources'].append({"format" : "Restricted data"})
+
+            # If current user does not have full access to the metadata, tag the dataset as such
+            user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
+            if(user_dataset_access != "Full"):
+                pkg_dict['resources'].append({"format" : "Restricted metadata"})
+
+            # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
             if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
@@ -210,18 +224,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-        # Gets the number of results matching the search parameters
-        log.info('# of results ' + str(len(search_results)))
         return search_results
-        """
 
     def after_create(self, context, pkg_dict):
         log.info("HIT after_create")
         return pkg_dict
 
     def after_update(self, context, pkg_dict):
-        # Temporarily disabled
-        """
         log.info("HIT after update")
         log.info(context)
 
@@ -249,46 +258,66 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if f[0] in publically_visible_fields:
                 whitelist[f[0]] = f[1]
         
-        self.meta_authorize.set_visible_fields(dataset_id, 'public', whitelist)
-        """
+        self.meta_authorize.set_visible_fields('public', whitelist)
+
         return pkg_dict
 
 
     def before_index(self, pkg_dict):
-        # Temporarily disabled
-        """
         log.info("hit before_index")
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
-        self.meta_authorize.add_dataset(dataset_id, generate_default_fields(), pkg_dict['owner_org'], dname=pkg_dict['title'])
+        # Generate the default templates (full and min). For non-default templates use uuid to generate ID
 
-        log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
+        self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
 
-        # Set visible fields for all users in the authorization model.
-        for user in self.meta_authorize.get_users():
-            # Skip public user, we handle that as a special case after.
-            if user == 'public':
-                continue
+        log.info("adding default templates")
+        templates = self.meta_authorize.get_templates(dataset_id)
+        if len(templates) == 0:
+            if 'notes' in pkg_dict and pkg_dict['notes']:
+                log.info(type(pkg_dict['notes']))
+                try:
+                    dataset_notes = json.loads(pkg_dict['notes'].encode('utf-8'))
+                    self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
+                    self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
+                except ValueError as err:
+                    log.info("No description found")
 
+            # Generate an id, name, and description for the default templates (full and minimal)
+            # TODO Create a better description based on the final
+            full_id = str(uuid.uuid4())
+            full_name = 'Full'
+            full_description = "This is the full, unrestricted template. Choosing this will display the full set of metadata for the assigned role."
+            minimal_id = str(uuid.uuid4())
+            minimal_name = "Minimal"
+            minimal_description = "This template restricts some metadata for the chosen role. Restricted fields include location and temporal data"
+
+            # Adds the full and minimal template
+            self.meta_authorize.add_template_full(dataset_id, full_id, full_name, generate_default_fields(), full_description)
+            self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
             self.meta_authorize.set_visible_fields(
-                dataset_id,
-                user,
+                minimal_id,
                 generate_whitelist(
-                    self.meta_authorize.get_metadata_fields(pkg_dict["id"])
-                    )
+                    default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
                 )
-
-        # Set visible fields for the public/not-logged in users
-        self.meta_authorize.set_visible_fields(
-            dataset_id,
-            'public',
-            generate_whitelist(
-                default_public_fields(self.meta_authorize.get_metadata_fields(pkg_dict["id"]))
             )
-        )
+            
+            log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
 
-        """
+            # Always add access for public and admin roles
+            # TODO Discuss change default for public?
+            self.meta_authorize.set_template_access('public', minimal_id)
+            self.meta_authorize.set_template_access('admin', full_id)
+
+            # Add access for any roles in the organization
+            log.info(self.meta_authorize.get_roles(pkg_dict['owner_org']))
+            for role in self.meta_authorize.get_roles(pkg_dict['owner_org']).values():
+                self.meta_authorize.set_template_access(str(role), full_id)
+
+            #Add serves for organizations
+            
+            
         return pkg_dict
 
 '''
