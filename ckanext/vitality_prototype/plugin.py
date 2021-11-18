@@ -159,7 +159,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info('Request from ' + user_id)
 
         log.info(search_params)
-
+        log.info(search_results)
         # Gets the number of results matching the search parameters (total)
         log.info('# of total results ' + str(search_results['count']))
 
@@ -175,7 +175,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info('Parsing search data')
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
-
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
@@ -224,6 +223,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
+            
         return search_results
 
     def after_create(self, context, pkg_dict):
