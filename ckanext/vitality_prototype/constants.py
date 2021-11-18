@@ -141,6 +141,8 @@ MINIMUM_FIELDS = [
     "organization/state",
     "organization/type",
     "organization/name",
+    "dataset-reference-date",
+    "metadata-reference-date",
     # Harvest issues
     "cited-responsible-party",
     "eov",
