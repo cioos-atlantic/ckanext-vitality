@@ -18,8 +18,8 @@ jobs:
       - name: deploy
         uses: appleboy/ssh-action@master
         with:
-            host: ${{ secrets.host }}
-            username: ${{ secrets.user }}
-            key: ${{ secrets.key }}
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
             script: whoami
             
