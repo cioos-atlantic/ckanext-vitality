@@ -1,0 +1,25 @@
+name: remote_deploy
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events for the branch
+  push:
+    branches: [ actions_deploy ]
+  pull_request:
+    branches: [ actions_deploy ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: deploy
+        uses: appleboy/ssh-action@master
+        with:
+            host: ${{ secrets.host }}
+            username: ${{ secrets.user }}
+            key: ${{ secrets.key }}
+            script: whoami
+            
