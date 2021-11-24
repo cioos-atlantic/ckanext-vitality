@@ -126,7 +126,9 @@ PUBLIC_FIELDS = [
     "notes_translated/fr",
     "progress",
     "resource_type",
-    "xml_location_url" 
+    "xml_location_url",
+    "dataset-reference-date",
+    "metadata-reference-date" 
 ]
 
 # Template / harvest issues will occur if these fields don't exist
