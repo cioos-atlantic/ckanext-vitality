@@ -24,4 +24,4 @@ jobs:
               whoami
               cd ${{ secrets.ACTIONS_FOLDER }}
               ls -al
-            
+              ./git_update_vitality_prototype.sh
