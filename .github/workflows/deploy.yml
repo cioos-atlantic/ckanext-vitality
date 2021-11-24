@@ -7,13 +7,12 @@ on:
     branches: [ actions_deploy ]
   pull_request:
     branches: [ actions_deploy ]
-
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    environment: Development
     steps:
       - name: deploy
         uses: appleboy/ssh-action@master
