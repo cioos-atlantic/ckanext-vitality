@@ -21,7 +21,6 @@ jobs:
             username: ${{ secrets.SSH_USER }}
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             script: |
-              whoami
               cd ${{ secrets.ACTIONS_FOLDER }}
               ls -al
               ./git_update_vitality_prototype.sh
