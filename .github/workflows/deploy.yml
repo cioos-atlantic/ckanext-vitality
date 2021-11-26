@@ -23,5 +23,7 @@ jobs:
             script: |
               cd ${{ secrets.ACTIONS_FOLDER }}
               ls -al
+              echo "Pulling updates from repository"
               ./git_update_vitality_prototype.sh
+              echo "Redeploying plugin"
               ./plugin_deploy.sh
