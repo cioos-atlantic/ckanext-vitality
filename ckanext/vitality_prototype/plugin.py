@@ -148,7 +148,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_search(self, search_results, search_params):
-        log.info("Check if deployment worked")
 
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
@@ -160,17 +159,16 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info(user)
             log.info('Request from ' + user_id)
 
-        log.info(search_results)
         # Gets the number of results matching the search parameters (total)
         log.info('# of total results ' + str(search_results['count']))
 
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
         result_count = len(datasets)
-        log.info('# of results loaded' + str(result_count))        
+        log.info('Number of results loaded' + str(result_count))        
         
         # Gets the total number of results matching the search parameters
-        log.info('# of results ' + str(len(search_results)))
+        log.info('Number of results ' + str(len(search_results)))
 
         # Go through each of the datasets returned in the results
         log.info('Parsing search data')
