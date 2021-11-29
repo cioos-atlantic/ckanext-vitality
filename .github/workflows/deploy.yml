@@ -22,7 +22,7 @@ jobs:
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             script: |
               cd ${{ secrets.ACTIONS_FOLDER }}
-              ls -a
+              ls
               echo "Pulling updates from repository"
               ./git_update_vitality_prototype.sh
               echo "Redeploying plugin"
