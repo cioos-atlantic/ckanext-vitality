@@ -1,0 +1,29 @@
+name: remote_deploy
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events for the branch
+  push:
+    branches: [ development ]
+  pull_request:
+    branches: [ development ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: Development
+    steps:
+      - name: deploy
+        uses: appleboy/ssh-action@master
+        with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            script: |
+              cd ${{ secrets.ACTIONS_FOLDER }}
+              ls
+              echo "Pulling updates from repository"
+              ./git_update_vitality_prototype.sh
+              echo "Redeploying plugin"
+              ./plugin_deploy.sh
