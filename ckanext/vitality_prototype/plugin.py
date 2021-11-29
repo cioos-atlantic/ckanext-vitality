@@ -148,6 +148,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_search(self, search_results, search_params):
+        log.info("Check if deployment worked")
+
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
             log.info('Public user')
@@ -158,7 +160,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info(user)
             log.info('Request from ' + user_id)
 
-        log.info(search_params)
         log.info(search_results)
         # Gets the number of results matching the search parameters (total)
         log.info('# of total results ' + str(search_results['count']))
@@ -207,7 +208,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # If the metadata is restricted in any way will add a "resource" so a tag can be generated
             # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
-            pkg_dict['resources'].append({"format" : "Restricted data"})
+            pkg_dict['resources'].append({"format" : "Restricted Wdata"})
 
             # If current user does not have full access to the metadata, tag the dataset as such
             user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
