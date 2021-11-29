@@ -4,9 +4,9 @@ name: remote_deploy
 on:
   # Triggers the workflow on push or pull request events for the branch
   push:
-    branches: [ actions_deploy ]
+    branches: [ development ]
   pull_request:
-    branches: [ actions_deploy ]
+    branches: [ development ]
   workflow_dispatch:
 
 jobs:
