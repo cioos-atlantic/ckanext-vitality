@@ -21,6 +21,7 @@ jobs:
             username: ${{ secrets.SSH_USER }}
             key: ${{ secrets.SSH_PRIVATE_KEY }}
             script: |
+              echo "Remote deployment starting"
               cd ${{ secrets.ACTIONS_FOLDER }}
               ls
               echo "Pulling updates from repository"
