@@ -126,7 +126,6 @@ PUBLIC_FIELDS = [
     "notes_translated/fr",
     "progress",
     "resource_type",
-    "xml_location_url",
     "dataset-reference-date",
     "metadata-reference-date" 
 ]
@@ -155,8 +154,7 @@ MINIMUM_FIELDS = [
     "notes_translated/en",
     "notes_translated/fr",
     "progress",
-    "resource_type",
-    "xml_location_url"
+    "resource_type"
 
 ]
 

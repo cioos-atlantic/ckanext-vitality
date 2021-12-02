@@ -143,6 +143,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'resources' not in pkg_dict:
             pkg_dict['resources'] = []
 
+        # Inject empty xml link if it has been filtered
+        if 'xml_location_url' not in pkg_dict:
+                pkg_dict['xml_location_url'] = ""
+
         log.info("Final pkg_dict:")
         log.info(pkg_dict)
         return pkg_dict
@@ -220,6 +224,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['metadata-point-of-contact'] = "{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}"
             if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
+            
+            # Though xml_location_url is also required for harvest, it is not included with the public variables
+            #   as it displays the scrubbed metadata in the xml
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
             
