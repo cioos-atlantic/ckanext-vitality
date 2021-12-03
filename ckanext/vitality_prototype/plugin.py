@@ -214,7 +214,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if(user_dataset_access != "Full"):
                 pkg_dict['resources'].append({"format" : "Restricted metadata"})
 
-            pkg_dict['resources'].append({"format" : "Deploy test"})
             # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
