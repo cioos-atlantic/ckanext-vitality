@@ -103,6 +103,10 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_elements, dataset_id)
 
+    def get_organization(self, organization_id):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__get_org, organization_id)
+
     def get_public_fields(self, dataset_id):
         public_field_ids =  self.get_visible_fields(dataset_id, user_id='public')
         public_field_names = [f[0].encode("utf-8") for f in self.get_metadata_fields(dataset_id).items() if f[1] in public_field_ids]
@@ -167,6 +171,15 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__bind_fields_to_template, template_id, whitelist)
 
+    def set_organization_name(self, org_id, org_name):
+        with self.driver.session() as session:
+            session.write_transaction(self.__set_organization_name, org_id, org_name)
+
+    @staticmethod
+    def __set_organization_name(tx, id, name):
+        records = tx.run("MATCH (o:organization {id:'"+id+"'}) set o.name ='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
+        return
+
     @staticmethod
     def __get_dataset(tx, id):
         records = tx.run("MATCH (d:dataset {id:'"+id+"'}) return d.id as id")
@@ -183,9 +196,9 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __get_org(tx, id):
-        records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id as id")      
+        records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id AS id, o.name AS name")      
         for record in records:
-            return record['id']    
+            return record    
         return None
 
     @staticmethod

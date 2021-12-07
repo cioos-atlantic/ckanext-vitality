@@ -37,6 +37,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
+    plugins.implements(plugins.IOrganizationController, inherit=True)
 
     # Authorization Interface
     meta_authorize = None
@@ -268,7 +269,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         return pkg_dict
 
-
     def before_index(self, pkg_dict):
         log.info("hit before_index")
 
@@ -325,6 +325,16 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             
             
         return pkg_dict
+
+    # Testing the IOrganizationController (Check if any issues with overlap here)
+
+    def edit(self, entity):
+        log.info("An organization has been edited")
+        org_name = self.meta_authorize.get_organization(entity.id)['name']
+        if(org_name != entity.name):
+            log.info("Org name has been updated")
+            self.meta_authorize.set_organization_name(entity.id, entity.name)
+            org_name = self.meta_authorize.get_organization(entity.id)['name']
 
 '''
 Utility for printing pkg_dict structure
