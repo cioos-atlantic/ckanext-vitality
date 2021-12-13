@@ -18,6 +18,13 @@ from ckan.common import config
 log = logging.getLogger(__name__)
 
 
+@toolkit.chained_action
+def organization_update(action, context, data_dict=None):
+    log.info("ORG UPDATE!!!")
+    log.info(context)
+    log.info(data_dict)
+    return action(context, data_dict)
+
 class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     """ 
     A CKAN plugin for creating a data registry.
@@ -37,7 +44,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
-    plugins.implements(plugins.IOrganizationController, inherit=True)
+    plugins.implements(plugins.IActions, inherit=True)
 
     # Authorization Interface
     meta_authorize = None
@@ -47,6 +54,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return {
             'vitality_prototype_get_minimum_fields': lambda: constants.MINIMUM_FIELDS
         }
+
+    
+    def get_actions(self):
+        log.info("got actions")
+        return {
+            "organization_update" : organization_update
+        }
+    
 
     # IConfigurer
 
@@ -270,6 +285,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_index(self, pkg_dict):
+    
         log.info("hit before_index")
 
         dataset_id = pkg_dict["id"].encode("utf-8")
@@ -326,15 +342,58 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             
         return pkg_dict
 
+
+
+"""
+class Vitality_OrganizationUpdater(plugins.SingletonPlugin):
+    plugins.implements(plugins.IConfigurer)
+    plugins.implements(plugins.ITemplateHelpers)
+    plugins.implements(plugins.IOrganizationController, inherit=True)
+
+    # Authorization Interface
+    meta_authorize = None
+
+    # ITemplateHelpers
+    def get_helpers(self):
+        return {
+            'vitality_prototype_get_minimum_fields': lambda: constants.MINIMUM_FIELDS
+        }
+
+    # IConfigurer
+
+    def update_config(self, config_):
+        Updates the CKAN configuration based on config_ via meta_authorize parameter.
+
+        Parameters
+        ----------
+        config_ : config object
+        
+        Returns
+        -------
+        None
+
+        toolkit.add_template_directory(config_, 'templates')
+        toolkit.add_public_directory(config_, 'public')
+
+        # Load neo4j connection parameters from config
+        # Initalize meta_authorize
+        self.meta_authorize = MetaAuthorize.create(MetaAuthorizeType.GRAPH, {
+            'host': config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687"),
+            'user': config.get('ckan.vitality.neo4j.user', "neo4j"),
+            'password': config.get('ckan.vitality.neo4j.password', "password")
+        })
+    
     # Testing the IOrganizationController (Check if any issues with overlap here)
 
     def edit(self, entity):
         log.info("An organization has been edited")
+        log.info(entity)
         org_name = self.meta_authorize.get_organization(entity.id)['name']
         if(org_name != entity.name):
             log.info("Org name has been updated")
             self.meta_authorize.set_organization_name(entity.id, entity.name)
             org_name = self.meta_authorize.get_organization(entity.id)['name']
+"""
 
 '''
 Utility for printing pkg_dict structure
@@ -366,8 +425,6 @@ def print_expanded(pkg_dict, key_name=None, depth=None):
         log.error("Error expanding pkg_dict. last_key:" + last_key)
         log.error(type(ex))
         log.error(str(ex))
-
-
 
 def compute_tabs(num):
     """ Returns a string with `num` tabs
