@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 @toolkit.chained_action
 def organization_update(action, context, data_dict=None):
     log.info("An organization has been edited")
+    log.info(action)
     log.info(data_dict)
     """
     org_name = self.meta_authorize.get_organization(entity.id)['name']
@@ -33,24 +34,47 @@ def organization_update(action, context, data_dict=None):
 
 @toolkit.chained_action
 def organization_create(action, context, data_dict=None):
+    log.info("An organization has been created")
     return action(context, data_dict)
 
 @toolkit.chained_action
 def organization_delete(action, context, data_dict=None):
-    return action(context, data_dict)
-
-@toolkit.chained_action
-def user_create(action, context, data_dict=None):
-    # Get list of organizations user can access and cross-ref
+    log.info("An organization has been deleted")
     return action(context, data_dict)
 
 @toolkit.chained_action
 def user_update(action, context, data_dict=None):
+    log.info("An user has been edited")
+    # Get list of organizations user can access and cross-ref
+    # May be able to use organization_member_create instead? ()
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def user_create(action, context, data_dict=None):
+    log.info("An user has been created")
     # Get list of organizations user can access and cross-ref
     return action(context, data_dict)
 
 @toolkit.chained_action
 def user_delete(action, context, data_dict=None):
+    log.info("An user has been deleted")
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def package_create(action, context, data_dict=None):
+    log.info("An package has been created")
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def package_update(action, context, data_dict=None):
+    log.info("An package has been updated")
+    # Only needs to track description?
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def package_update(action, context, data_dict=None):
+    log.info("An package has been deleted")
+    # Only needs to track description?
     return action(context, data_dict)
 
 class Vitality_PrototypePlugin(plugins.SingletonPlugin):
@@ -87,7 +111,15 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def get_actions(self):
         log.info("got actions")
         return {
-            "organization_update" : organization_update
+            "organization_update" : organization_update,
+            "organization_create" : organization_create,
+            "organization_delete" : organization_delete,
+            "user_update" : user_update,
+            "user_create" : user_create,
+            "user_delete" : user_delete,
+            "package_update" : user_update,
+            "package_create" : user_create,
+            "package_delete" : user_delete
         }
 
     # IConfigurer
