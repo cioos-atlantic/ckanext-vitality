@@ -20,9 +20,37 @@ log = logging.getLogger(__name__)
 
 @toolkit.chained_action
 def organization_update(action, context, data_dict=None):
-    log.info("ORG UPDATE!!!")
-    log.info(context)
+    log.info("An organization has been edited")
     log.info(data_dict)
+    """
+    org_name = self.meta_authorize.get_organization(entity.id)['name']
+    if(org_name != entity.name):
+        log.info("Org name has been updated")
+        self.meta_authorize.set_organization_name(entity.id, entity.name)
+        org_name = self.meta_authorize.get_organization(entity.id)['name']
+    """
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def organization_create(action, context, data_dict=None):
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def organization_delete(action, context, data_dict=None):
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def user_create(action, context, data_dict=None):
+    # Get list of organizations user can access and cross-ref
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def user_update(action, context, data_dict=None):
+    # Get list of organizations user can access and cross-ref
+    return action(context, data_dict)
+
+@toolkit.chained_action
+def user_delete(action, context, data_dict=None):
     return action(context, data_dict)
 
 class Vitality_PrototypePlugin(plugins.SingletonPlugin):
@@ -61,7 +89,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return {
             "organization_update" : organization_update
         }
-    
 
     # IConfigurer
 
@@ -341,59 +368,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             
             
         return pkg_dict
-
-
-
-"""
-class Vitality_OrganizationUpdater(plugins.SingletonPlugin):
-    plugins.implements(plugins.IConfigurer)
-    plugins.implements(plugins.ITemplateHelpers)
-    plugins.implements(plugins.IOrganizationController, inherit=True)
-
-    # Authorization Interface
-    meta_authorize = None
-
-    # ITemplateHelpers
-    def get_helpers(self):
-        return {
-            'vitality_prototype_get_minimum_fields': lambda: constants.MINIMUM_FIELDS
-        }
-
-    # IConfigurer
-
-    def update_config(self, config_):
-        Updates the CKAN configuration based on config_ via meta_authorize parameter.
-
-        Parameters
-        ----------
-        config_ : config object
-        
-        Returns
-        -------
-        None
-
-        toolkit.add_template_directory(config_, 'templates')
-        toolkit.add_public_directory(config_, 'public')
-
-        # Load neo4j connection parameters from config
-        # Initalize meta_authorize
-        self.meta_authorize = MetaAuthorize.create(MetaAuthorizeType.GRAPH, {
-            'host': config.get('ckan.vitality.neo4j.host', "bolt://localhost:7687"),
-            'user': config.get('ckan.vitality.neo4j.user', "neo4j"),
-            'password': config.get('ckan.vitality.neo4j.password', "password")
-        })
-    
-    # Testing the IOrganizationController (Check if any issues with overlap here)
-
-    def edit(self, entity):
-        log.info("An organization has been edited")
-        log.info(entity)
-        org_name = self.meta_authorize.get_organization(entity.id)['name']
-        if(org_name != entity.name):
-            log.info("Org name has been updated")
-            self.meta_authorize.set_organization_name(entity.id, entity.name)
-            org_name = self.meta_authorize.get_organization(entity.id)['name']
-"""
 
 '''
 Utility for printing pkg_dict structure
