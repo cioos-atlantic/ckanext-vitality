@@ -67,7 +67,7 @@ class _GraphMetaAuth(MetaAuthorize):
     def add_user(self, user_id, user_name = None, user_email = None):
         with self.driver.session() as session:
             # Check to see if the user already exists, if so we're done as we don't want to create duplicates.
-            if session.read_transaction(self.__get_user, user_id) != None:
+            if session.read_transaction(self.__get_user_by_id, user_id) != None:
                 return
             session.write_transaction(self.__write_user, user_id, user_name, user_email)
 
@@ -140,7 +140,11 @@ class _GraphMetaAuth(MetaAuthorize):
 
     def get_user(self, id):
         with self.driver.session() as session:
-            return session.read_transaction(self.__get_user, id)
+            return session.read_transaction(self.__get_user_by_id, id)
+
+    def get_user_by_username(self, username):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__get_user_by_username, username)
 
     def get_users(self):
         with self.driver.session() as session:
@@ -174,7 +178,7 @@ class _GraphMetaAuth(MetaAuthorize):
     def set_user_email(self, id, email):
         with self.driver.session() as session:
             session.write_transaction(self.__set_user_email, id, email)   
-
+            
     def set_user_role(self, user_id, role_id):
         with self.driver.session() as session:
             session.write_transaction(self.__bind_user_to_role, user_id, role_id)
@@ -243,8 +247,15 @@ class _GraphMetaAuth(MetaAuthorize):
             return record['id']
 
     @staticmethod 
-    def __get_user(tx, id):
+    def __get_user_by_id(tx, id):
         records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id, u.username as username, u.email as email")   
+        for record in records:
+            return record
+        return None
+
+    @staticmethod 
+    def __get_user_by_username(tx, username):
+        records = tx.run("MATCH (u:user {username:'"+username+"'}) return u.id as id, u.username as username, u.email as email")   
         for record in records:
             return record
         return None

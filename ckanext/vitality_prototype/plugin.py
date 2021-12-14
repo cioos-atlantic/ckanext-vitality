@@ -94,6 +94,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             "organization_update" : self.organization_update,
             "organization_create" : organization_create,
             "organization_delete" : organization_delete,
+            "organization_member_create" : self.organization_member_create,
+            "organization_member_delete" : self.organization_member_delete,
             "user_update" : self.user_update,
             "user_create" : user_create,
             "user_delete" : user_delete,
@@ -102,41 +104,59 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             "package_delete" : package_delete
         }
 
+    @toolkit.chained_action
+    def organization_member_create(self, action, context, data_dict=None):
+        log.info("A member has been added!")
+        org_id= data_dict['id']
+        user_id = self.meta_authorize.get_user_by_username(data_dict['username'])['id']
+        # Get roles for org
+        org_roles = self.meta_authorize.get_roles(org_id)
+        log.info(org_roles)
+        log.info(org_roles['member'])
+        #self.meta_authorize.set_user_role(user_id, org_roles['member'])
+        # Add user to member role for organization
+        return action(context,data_dict)
 
+    @toolkit.chained_action
+    def organization_member_delete(self, action, context, data_dict=None):
+        log.info("A member has been deleted")
+        org_id= data_dict['id']
+        user_id = data_dict['user_id']
+        log.info("Collected ids")
+        log.info(org_id)
+        log.info(user_id)
+        org_roles = self.meta_authorize.get_roles(org_id)
+        log.info(org_roles)
+        log.info(org_roles['member'])
+        return action(context,data_dict)
+
+    # Triggers when an org's information is updated (name)
     @toolkit.chained_action
     def organization_update(self, action, context, data_dict=None):
         log.info("An organization has been edited")
-        log.info(action)
-        log.info(context)
-        log.info(data_dict)
-        log.info(data_dict['name'])
-        """
+        ckan_org_info = toolkit.get_action('organization_show')(context, data_dict)
+        ckan_org_id= ckan_org_info['id']
         ckan_org_name = data_dict['name']
-        neo4j_org_name = self.meta_authorize.get_organization(entity.id)['name']
-        if(neo4j_org_name != data_dict['name']):
+        neo4j_org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
+        if(neo4j_org_name != ckan_org_name):
             log.info("Org name has been updated")
-            self.meta_authorize.set_organization_name(entity.id, entity.name)
-            org_name = self.meta_authorize.get_organization(entity.id)['name']
-        """
+            self.meta_authorize.set_organization_name(ckan_org_id, ckan_org_name)
+            org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
         return action(context, data_dict)      
 
+    # Triggers when a user's information is updated (name/email)
     @toolkit.chained_action
     def user_update(self, action, context, data_dict=None):
         log.info("An user has been edited")
-
         ckan_user_info = toolkit.get_action('user_show')(context,data_dict)
         neo4j_user_info = self.meta_authorize.get_user(ckan_user_info['id'])
-
+        # Unsure if username can be changed, but this can work around it if so
         if(data_dict['name'] != neo4j_user_info['username']):
             log.info("Username has been updated")
             self.meta_authorize.set_user_username(ckan_user_info['id'], data_dict['name'])
-
         if(data_dict['email'] != neo4j_user_info['email']):
             log.info("Email has been updated")
             self.meta_authorize.set_user_email(ckan_user_info['id'], data_dict['email'])
-
-        # Get list of organizations user can access and cross-ref
-        # May be able to use organization_member_create instead? ()
         return action(context, data_dict)
 
 
