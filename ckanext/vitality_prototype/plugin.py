@@ -17,20 +17,7 @@ from ckan.common import config
 
 log = logging.getLogger(__name__)
 
-
-@toolkit.chained_action
-def organization_update(action, context, data_dict=None):
-    log.info("An organization has been edited")
-    log.info(action)
-    log.info(data_dict)
-    """
-    org_name = self.meta_authorize.get_organization(entity.id)['name']
-    if(org_name != entity.name):
-        log.info("Org name has been updated")
-        self.meta_authorize.set_organization_name(entity.id, entity.name)
-        org_name = self.meta_authorize.get_organization(entity.id)['name']
-    """
-    return action(context, data_dict)
+ 
 
 @toolkit.chained_action
 def organization_create(action, context, data_dict=None):
@@ -40,13 +27,6 @@ def organization_create(action, context, data_dict=None):
 @toolkit.chained_action
 def organization_delete(action, context, data_dict=None):
     log.info("An organization has been deleted")
-    return action(context, data_dict)
-
-@toolkit.chained_action
-def user_update(action, context, data_dict=None):
-    log.info("An user has been edited")
-    # Get list of organizations user can access and cross-ref
-    # May be able to use organization_member_create instead? ()
     return action(context, data_dict)
 
 @toolkit.chained_action
@@ -72,7 +52,7 @@ def package_update(action, context, data_dict=None):
     return action(context, data_dict)
 
 @toolkit.chained_action
-def package_update(action, context, data_dict=None):
+def package_delete(action, context, data_dict=None):
     log.info("An package has been deleted")
     # Only needs to track description?
     return action(context, data_dict)
@@ -111,16 +91,59 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def get_actions(self):
         log.info("got actions")
         return {
-            "organization_update" : organization_update,
+            "organization_update" : self.organization_update,
             "organization_create" : organization_create,
             "organization_delete" : organization_delete,
-            "user_update" : user_update,
+            "user_show" : self.user_show,
+            "user_update" : self.user_update,
             "user_create" : user_create,
             "user_delete" : user_delete,
-            "package_update" : user_update,
-            "package_create" : user_create,
-            "package_delete" : user_delete
+            "package_update" : package_update,
+            "package_create" : package_create,
+            "package_delete" : package_delete
         }
+
+
+    @toolkit.chained_action
+    def organization_update(self, action, context, data_dict=None):
+        log.info("An organization has been edited")
+        log.info(action)
+        log.info(context)
+        log.info(data_dict)
+        log.info(data_dict['name'])
+        """
+        ckan_org_name = data_dict['name']
+        neo4j_org_name = self.meta_authorize.get_organization(entity.id)['name']
+        if(neo4j_org_name != data_dict['name']):
+            log.info("Org name has been updated")
+            self.meta_authorize.set_organization_name(entity.id, entity.name)
+            org_name = self.meta_authorize.get_organization(entity.id)['name']
+        """
+        return action(context, data_dict)      
+
+    @toolkit.chained_action
+    def user_update(self, action, context, data_dict=None):
+        log.info("An user has been edited")
+
+        ckan_user_info = toolkit.get_action('user_show')(context,data_dict)
+        neo4j_user_info = self.meta_authorize.get_user(ckan_user_info['id'])
+
+        if(data_dict['name'] != neo4j_user_info['username']):
+            log.info("Username has been updated")
+            self.meta_authorize.set_user_username(ckan_user_info['id'], data_dict['name'])
+
+        if(data_dict['email'] != neo4j_user_info['email']):
+            log.info("Email has been updated")
+            self.meta_authorize.set_user_email(ckan_user_info['id'], data_dict['email'])
+
+        # Get list of organizations user can access and cross-ref
+        # May be able to use organization_member_create instead? ()
+        return action(context, data_dict)
+
+
+    @toolkit.chained_action
+    def user_show(self, action, context, data_dict=None):
+        return action(context, data_dict)
 
     # IConfigurer
 

@@ -49,7 +49,7 @@ class _GraphMetaAuth(MetaAuthorize):
     def add_org(self, org_id, users, org_name=None):
         with self.driver.session() as session:
             # Check to see if the org already exists, if so we're done as we don't want to create duplicates.
-            if session.read_transaction(self.__get_org, org_id):
+            if session.read_transaction(self.__get_org_by_id, org_id):
                 return
             session.write_transaction(self.__write_org, org_id, org_name)
             # Create member role
@@ -105,7 +105,7 @@ class _GraphMetaAuth(MetaAuthorize):
 
     def get_organization(self, organization_id):
         with self.driver.session() as session:
-            return session.read_transaction(self.__get_org, organization_id)
+            return session.read_transaction(self.__get_org_by_id, organization_id)
 
     def get_public_fields(self, dataset_id):
         public_field_ids =  self.get_visible_fields(dataset_id, user_id='public')
@@ -138,6 +138,10 @@ class _GraphMetaAuth(MetaAuthorize):
             else:
                 return None 
 
+    def get_user(self, id):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__get_user, id)
+
     def get_users(self):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_users)
@@ -159,9 +163,17 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__bind_user_to_org, user_id, org_id)
 
-    def set_user_gid(self, user_id, gid):
+    def set_user_gid(self, id, gid):
         with self.driver.session() as session:
-            session.write_transaction(self.__set_user_gid, user_id, gid)
+            session.write_transaction(self.__set_user_gid, id, gid)
+
+    def set_user_username(self, id, username):
+        with self.driver.session() as session:
+            session.write_transaction(self.__set_user_gid, id, username)            
+
+    def set_user_email(self, id, email):
+        with self.driver.session() as session:
+            session.write_transaction(self.__set_user_email, id, email)   
 
     def set_user_role(self, user_id, role_id):
         with self.driver.session() as session:
@@ -174,6 +186,10 @@ class _GraphMetaAuth(MetaAuthorize):
     def set_organization_name(self, org_id, org_name):
         with self.driver.session() as session:
             session.write_transaction(self.__set_organization_name, org_id, org_name)
+            
+    def organization_exists(self, org_name):
+        with self.driver.session() as session:
+            return session.read_transaction(self.__get_org_by_name, org_name)
 
     @staticmethod
     def __set_organization_name(tx, id, name):
@@ -195,8 +211,15 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
-    def __get_org(tx, id):
+    def __get_org_by_id(tx, id):
         records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id AS id, o.name AS name")      
+        for record in records:
+            return record    
+        return None
+
+    @staticmethod
+    def __get_org_by_name(tx, name):
+        records = tx.run("MATCH (o:organization {name:'"+name+"'}) return o.id AS id, o.name AS name")      
         for record in records:
             return record    
         return None
@@ -221,9 +244,9 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod 
     def __get_user(tx, id):
-        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id")   
+        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id, u.username as username, u.email as email")   
         for record in records:
-            return record['id']
+            return record
         return None
 
     @staticmethod
@@ -358,6 +381,14 @@ class _GraphMetaAuth(MetaAuthorize):
     @staticmethod
     def __set_user_gid(tx, user_id, gid):
         tx.run("MATCH (u:user {id:'"+user_id+"'}) SET u.gid = '"+gid+"'")   
+
+    @staticmethod
+    def __set_user_username(tx, id, username):
+        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.username = '"+username+"'") 
+
+    @staticmethod
+    def __set_user_email(tx, id, email):
+        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.email = '"+email+"'")   
 
     @staticmethod
     def __bind_fields_to_template(tx, template_id, whitelist):  
