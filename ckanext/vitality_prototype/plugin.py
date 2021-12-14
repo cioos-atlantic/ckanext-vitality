@@ -94,7 +94,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             "organization_update" : self.organization_update,
             "organization_create" : organization_create,
             "organization_delete" : organization_delete,
-            "user_show" : self.user_show,
             "user_update" : self.user_update,
             "user_create" : user_create,
             "user_delete" : user_delete,
@@ -140,10 +139,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # May be able to use organization_member_create instead? ()
         return action(context, data_dict)
 
-
-    @toolkit.chained_action
-    def user_show(self, action, context, data_dict=None):
-        return action(context, data_dict)
 
     # IConfigurer
 
