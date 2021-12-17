@@ -153,7 +153,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def user_create(self, action, context, data_dict=None):
         result = action(context, data_dict)
         log.info("A user has been created")
-        log.info(result)
         user_id = result['id']
         user_name = result['name']
         user_email = result['email']
@@ -161,13 +160,24 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if(result['sysadmin']):
             log.info('add to admin role')
             self.meta_authorize.set_user_role(user_id, 'admin')
-        # Create user in neo4j
         return result
 
     @toolkit.chained_action
-    def organization_create(action, context, data_dict=None):
+    def organization_create(self, action, context, data_dict=None):
         log.info("An organization has been created")
-        return action(context, data_dict)
+        result = action(context, data_dict)
+        org_name = data_dict['title_translated-en']
+        org_id = result['id']
+        user_list = []
+        for user in data_dict['users']:
+            # TODO If user is an admin for the organization, give them admin form access too
+            user_id = self.meta_authorize.get_user_by_username(user['name'])['id']
+            user_list.append({'id':user_id})
+        self.meta_authorize.add_org(org_id, user_list, org_name)
+        admin_list = self.meta_authorize.get_admins()
+        for admin in admin_list:
+                self.meta_authorize.set_admin_form_access(admin, org_id)
+        return result
 
     # IConfigurer
 
