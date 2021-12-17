@@ -19,20 +19,11 @@ log = logging.getLogger(__name__)
 
  
 
-@toolkit.chained_action
-def organization_create(action, context, data_dict=None):
-    log.info("An organization has been created")
-    return action(context, data_dict)
+
 
 @toolkit.chained_action
 def organization_delete(action, context, data_dict=None):
     log.info("An organization has been deleted")
-    return action(context, data_dict)
-
-@toolkit.chained_action
-def user_create(action, context, data_dict=None):
-    log.info("An user has been created")
-    # Get list of organizations user can access and cross-ref
     return action(context, data_dict)
 
 @toolkit.chained_action
@@ -92,12 +83,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("got actions")
         return {
             "organization_update" : self.organization_update,
-            "organization_create" : organization_create,
+            "organization_create" : self.organization_create,
             "organization_delete" : organization_delete,
             "organization_member_create" : self.organization_member_create,
             "organization_member_delete" : self.organization_member_delete,
             "user_update" : self.user_update,
-            "user_create" : user_create,
+            "user_create" : self.user_create,
             "user_delete" : user_delete,
             "package_update" : package_update,
             "package_create" : package_create,
@@ -113,7 +104,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         org_roles = self.meta_authorize.get_roles(org_id)
         log.info(org_roles)
         log.info(org_roles['member'])
-        #self.meta_authorize.set_user_role(user_id, org_roles['member'])
+        self.meta_authorize.set_user_role(user_id, org_roles['member'])
         # Add user to member role for organization
         return action(context,data_dict)
 
@@ -125,9 +116,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("Collected ids")
         log.info(org_id)
         log.info(user_id)
-        org_roles = self.meta_authorize.get_roles(org_id)
-        log.info(org_roles)
-        log.info(org_roles['member'])
+        role_id = self.meta_authorize.get_roles(org_id)['member']
+        self.meta_authorize.detach_user_role(user_id, role_id)
         return action(context,data_dict)
 
     # Triggers when an org's information is updated (name)
@@ -159,6 +149,25 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             self.meta_authorize.set_user_email(ckan_user_info['id'], data_dict['email'])
         return action(context, data_dict)
 
+    @toolkit.chained_action
+    def user_create(self, action, context, data_dict=None):
+        result = action(context, data_dict)
+        log.info("A user has been created")
+        log.info(result)
+        user_id = result['id']
+        user_name = result['name']
+        user_email = result['email']
+        self.meta_authorize.add_user(user_id, user_name, user_email)
+        if(result['sysadmin']):
+            log.info('add to admin role')
+            self.meta_authorize.set_user_role(user_id, 'admin')
+        # Create user in neo4j
+        return result
+
+    @toolkit.chained_action
+    def organization_create(action, context, data_dict=None):
+        log.info("An organization has been created")
+        return action(context, data_dict)
 
     # IConfigurer
 

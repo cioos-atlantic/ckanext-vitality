@@ -178,7 +178,7 @@ class _GraphMetaAuth(MetaAuthorize):
     def set_user_email(self, id, email):
         with self.driver.session() as session:
             session.write_transaction(self.__set_user_email, id, email)   
-            
+
     def set_user_role(self, user_id, role_id):
         with self.driver.session() as session:
             session.write_transaction(self.__bind_user_to_role, user_id, role_id)
@@ -190,10 +190,10 @@ class _GraphMetaAuth(MetaAuthorize):
     def set_organization_name(self, org_id, org_name):
         with self.driver.session() as session:
             session.write_transaction(self.__set_organization_name, org_id, org_name)
-            
-    def organization_exists(self, org_name):
+
+    def detach_user_role(self, user_id, role_id):
         with self.driver.session() as session:
-            return session.read_transaction(self.__get_org_by_name, org_name)
+            session.write_transaction(self.__detach_user_from_role, user_id, role_id)
 
     @staticmethod
     def __set_organization_name(tx, id, name):
@@ -391,15 +391,15 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __set_user_gid(tx, user_id, gid):
-        tx.run("MATCH (u:user {id:'"+user_id+"'}) SET u.gid = '"+gid+"'")   
+        tx.run("MATCH (u:user {id:'"+user_id+"'}) SET u.gid = '"+"".join([c for c in gid if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
 
     @staticmethod
     def __set_user_username(tx, id, username):
-        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.username = '"+username+"'") 
+        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.username = '"+"".join([c for c in username if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'") 
 
     @staticmethod
     def __set_user_email(tx, id, email):
-        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.email = '"+email+"'")   
+        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.email = '"+"".join([c for c in email if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
 
     @staticmethod
     def __bind_fields_to_template(tx, template_id, whitelist):  
@@ -464,6 +464,11 @@ class _GraphMetaAuth(MetaAuthorize):
         # Check to see if user is already given a role in the organization, and if so delete those edges
         tx.run("MATCH (r:role {id:'"+role_id+"'})<-[:manages_role]-(o:organization), (u:user {id:'"+user_id+"'})-[h:has_role]->(:role)<-[:manages_role]-(o) DELETE h")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:has_role]->(r)")
+        return
+
+    @staticmethod
+    def __detach_user_from_role(tx, user_id, role_id):
+        tx.run("MATCH (r:role {id:'"+role_id+"'})<-[h:has_role]-(u:user {id:'"+user_id+"'}) delete h")
         return
 
     @staticmethod
