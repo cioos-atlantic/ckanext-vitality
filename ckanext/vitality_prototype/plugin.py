@@ -17,15 +17,6 @@ from ckan.common import config
 
 log = logging.getLogger(__name__)
 
- 
-
-
-
-@toolkit.chained_action
-def organization_delete(action, context, data_dict=None):
-    log.info("An organization has been deleted")
-    return action(context, data_dict)
-
 @toolkit.chained_action
 def user_delete(action, context, data_dict=None):
     log.info("An user has been deleted")
@@ -84,7 +75,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return {
             "organization_update" : self.organization_update,
             "organization_create" : self.organization_create,
-            "organization_delete" : organization_delete,
+            "organization_delete" : self.organization_delete,
             "organization_member_create" : self.organization_member_create,
             "organization_member_delete" : self.organization_member_delete,
             "user_update" : self.user_update,
@@ -177,6 +168,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         admin_list = self.meta_authorize.get_admins()
         for admin in admin_list:
                 self.meta_authorize.set_admin_form_access(admin, org_id)
+        return result
+
+    @toolkit.chained_action
+    def organization_delete(self, action, context, data_dict=None):
+        log.info("An organization has been deleted")
+        log.info(data_dict)
+        organization_id = data_dict['id']
+        result = action(context, data_dict)
+        log.info("Result:")
+        log.info(result)
+        self.meta_authorize.delete_organization(organization_id)
         return result
 
     # IConfigurer

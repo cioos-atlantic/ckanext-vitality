@@ -91,6 +91,16 @@ class _GraphMetaAuth(MetaAuthorize):
             for name,id in fields.items():
                 session.write_transaction(self.__write_metadata_field, name, id, template_id)
 
+
+    def delete_organization(self, org_id):
+        with self.driver.session() as session:
+            session.write_transaction(self.__delete_organization, org_id)
+            
+
+    def detach_user_role(self, user_id, role_id):
+        with self.driver.session() as session:
+            session.write_transaction(self.__detach_user_from_role, user_id, role_id)
+
     def get_admins(self):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_users_admins)
@@ -191,9 +201,6 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__set_organization_name, org_id, org_name)
 
-    def detach_user_role(self, user_id, role_id):
-        with self.driver.session() as session:
-            session.write_transaction(self.__detach_user_from_role, user_id, role_id)
 
     @staticmethod
     def __set_organization_name(tx, id, name):
@@ -380,6 +387,12 @@ class _GraphMetaAuth(MetaAuthorize):
         if(email):
             extra_properties += ", email: '" + email +"'"
         result = tx.run("CREATE (u:user {id:'"+id+"'" +extra_properties + "})")
+        return
+
+        
+    @staticmethod
+    def __delete_organization(tx, id):
+        result = tx.run("MATCH (o:organization {id: '"+id+"'}) detach delete o")
         return
 
     @staticmethod
