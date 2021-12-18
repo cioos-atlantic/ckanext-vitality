@@ -96,6 +96,9 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__delete_organization, org_id)
             
+    def delete_user(self, user_id):
+        with self.driver.session() as session:
+            session.write_transaction(self.__delete_user, user_id)
 
     def detach_user_role(self, user_id, role_id):
         with self.driver.session() as session:
@@ -167,6 +170,10 @@ class _GraphMetaAuth(MetaAuthorize):
     def set_dataset_description(self, dataset_id, language, description):
         with self.driver.session() as session:
             session.write_transaction(self.__set_dataset_description, dataset_id, language, description)
+
+    def set_dataset_name(self, dataset_id, dataset_name):
+        with self.driver.session() as session:
+            session.write_transaction(self.__set_dataset_name, dataset_id, dataset_name)
 
     def set_template_access(self, role_id, template_id):
         with self.driver.session() as session:
@@ -396,10 +403,18 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
+    def __delete_user(tx, id):
+        result = tx.run("MATCH (u:user {id: '"+id+"'}) detach delete u")
+        return
+
+    @staticmethod
     def __set_dataset_description(tx, id, language, description):
-        log.info("writing description")
-        log.info(description)
         result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.description_"+language+"='"+"".join([c for c in description if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
+        return
+
+    @staticmethod
+    def __set_dataset_name(tx, id, name):
+        result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.name='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
     @staticmethod

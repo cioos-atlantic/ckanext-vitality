@@ -17,28 +17,6 @@ from ckan.common import config
 
 log = logging.getLogger(__name__)
 
-@toolkit.chained_action
-def user_delete(action, context, data_dict=None):
-    log.info("An user has been deleted")
-    return action(context, data_dict)
-
-@toolkit.chained_action
-def package_create(action, context, data_dict=None):
-    log.info("An package has been created")
-    return action(context, data_dict)
-
-@toolkit.chained_action
-def package_update(action, context, data_dict=None):
-    log.info("An package has been updated")
-    # Only needs to track description?
-    return action(context, data_dict)
-
-@toolkit.chained_action
-def package_delete(action, context, data_dict=None):
-    log.info("An package has been deleted")
-    # Only needs to track description?
-    return action(context, data_dict)
-
 class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     """ 
     A CKAN plugin for creating a data registry.
@@ -80,10 +58,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             "organization_member_delete" : self.organization_member_delete,
             "user_update" : self.user_update,
             "user_create" : self.user_create,
-            "user_delete" : user_delete,
-            "package_update" : package_update,
-            "package_create" : package_create,
-            "package_delete" : package_delete
+            "user_delete" : self.user_delete,
+            "package_update" : self.package_update,
+            "package_create" : self.package_create,
+            "package_delete" : self.package_delete
         }
 
     @toolkit.chained_action
@@ -111,19 +89,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         self.meta_authorize.detach_user_role(user_id, role_id)
         return action(context,data_dict)
 
-    # Triggers when an org's information is updated (name)
-    @toolkit.chained_action
-    def organization_update(self, action, context, data_dict=None):
-        log.info("An organization has been edited")
-        ckan_org_info = toolkit.get_action('organization_show')(context, data_dict)
-        ckan_org_id= ckan_org_info['id']
-        ckan_org_name = data_dict['name']
-        neo4j_org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
-        if(neo4j_org_name != ckan_org_name):
-            log.info("Org name has been updated")
-            self.meta_authorize.set_organization_name(ckan_org_id, ckan_org_name)
-            org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
-        return action(context, data_dict)      
 
     # Triggers when a user's information is updated (name/email)
     @toolkit.chained_action
@@ -154,6 +119,27 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return result
 
     @toolkit.chained_action
+    def user_delete(self, action, context, data_dict=None):
+        log.info("An user has been deleted")
+        user_id = data_dict['id']
+        self.meta_authorize.delete_user(user_id)
+        return action(context, data_dict)
+
+    # Triggers when an org's information is updated (name)
+    @toolkit.chained_action
+    def organization_update(self, action, context, data_dict=None):
+        log.info("An organization has been edited")
+        ckan_org_info = toolkit.get_action('organization_show')(context, data_dict)
+        ckan_org_id= ckan_org_info['id']
+        ckan_org_name = data_dict['name']
+        neo4j_org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
+        if(neo4j_org_name != ckan_org_name):
+            log.info("Org name has been updated")
+            self.meta_authorize.set_organization_name(ckan_org_id, ckan_org_name)
+            org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
+        return action(context, data_dict)      
+
+    @toolkit.chained_action
     def organization_create(self, action, context, data_dict=None):
         log.info("An organization has been created")
         result = action(context, data_dict)
@@ -173,13 +159,113 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     @toolkit.chained_action
     def organization_delete(self, action, context, data_dict=None):
         log.info("An organization has been deleted")
-        log.info(data_dict)
         organization_id = data_dict['id']
         result = action(context, data_dict)
-        log.info("Result:")
-        log.info(result)
         self.meta_authorize.delete_organization(organization_id)
         return result
+
+    # Datasets may already be tracked with before_index function
+    # TODO Confirm whether this is the case or if this sections is needed
+    # If before_index tracks, it may be more practical as the chained actions will put draft / in progress datasets
+    #   in the graph database unnecessarily
+    """
+    @toolkit.chained_action
+    def package_create(self, action, context, data_dict=None):
+        log.info("An package has been created")
+        result = action(context, data_dict)
+        owner_org = result['owner_org']
+        dataset_id = result['id']
+        dataset_name = result['title_translated']['en']
+        self.meta_authorize.add_dataset(dataset_id, owner_org, dataset_name)
+        # Double check dataset doesn't already exist
+        templates = self.meta_authorize.get_templates(dataset_id)
+        if len(templates) == 0:
+            if 'notes' in result and result['notes']:
+                try:
+                    dataset_notes = json.loads(result['notes'].encode('utf-8'))
+                    self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
+                    self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
+                except ValueError as err:
+                    log.info("No description found")
+
+            # Generate an id, name, and description for the default templates (full and minimal)
+            # TODO Create a better description based on the final
+            full_id = str(uuid.uuid4())
+            full_name = 'Full'
+            full_description = "This is the full, unrestricted template. Choosing this will display the full set of metadata for the assigned role."
+            minimal_id = str(uuid.uuid4())
+            minimal_name = "Minimal"
+            minimal_description = "This template restricts some metadata for the chosen role. Restricted fields include location and temporal data"
+
+            # Adds the full and minimal template
+            self.meta_authorize.add_template_full(dataset_id, full_id, full_name, generate_default_fields(), full_description)
+            self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
+            self.meta_authorize.set_visible_fields(
+                minimal_id,
+                generate_whitelist(
+                    default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
+                )
+            )
+            
+            log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
+
+            # Always add access for public and admin roles
+            # TODO Discuss change default for public?
+            self.meta_authorize.set_template_access('public', minimal_id)
+            self.meta_authorize.set_template_access('admin', full_id)
+
+            # Add access for any roles in the organization
+            for role in self.meta_authorize.get_roles(owner_org).values():
+                self.meta_authorize.set_template_access(str(role), full_id)
+
+            #Add serves for organizations
+        log.info("All done!")
+        # Only needs to track description?
+        return result
+
+
+    @toolkit.chained_action
+    def package_update(self, action, context, data_dict=None):
+        log.info("An package has been updated")
+        result = action(context, data_dict)
+        dataset_id = result['id']
+        dataset_name = result['title_translated']['en']
+        dataset_description_en = result['notes_translated']['en']
+        dataset_description_fr = result['notes_translated']['fr']
+        self.meta_authorize.set_dataset_name(dataset_id, dataset_name)
+        self.meta_authorize.set_dataset_description(dataset_id, 'en', dataset_description_en)
+        self.meta_authorize.set_dataset_description(dataset_id, 'fr', dataset_description_fr)
+        # Only needs to track description?
+        return result
+
+    @toolkit.chained_action
+    def package_delete(action, context, data_dict=None):
+        log.info("An package has been deleted")
+        # Only needs to track description?
+        result = action(context, data_dict)
+        log.info(result['owner_org'])
+        log.info(result['id'])
+        log.info(result['title_translated']['en'])
+        log.info("All done!")
+        # Only needs to track description?
+        return result
+    """
+
+    # Temp method while above issue is resolved
+    @toolkit.chained_action
+    def package_create(self, action, context, data_dict=None):
+        return action(context, data_dict)
+
+
+    # Temp method while above issue is resolved
+    @toolkit.chained_action
+    def package_update(self, action, context, data_dict=None):
+        return action(context, data_dict)
+
+    # Temp method while above issue is resolved
+    @toolkit.chained_action
+    def package_delete(self, action, context, data_dict=None):
+        return action(context, data_dict)
 
     # IConfigurer
 
@@ -228,7 +314,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info(pkg_dict)
 
         # Description
-        notes = pkg_dict['notes'].encode("UTF-8")
+        if 'notes' in pkg_dict and pkg_dict['notes']:
+            notes = pkg_dict['notes'].encode("UTF-8")
 
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
