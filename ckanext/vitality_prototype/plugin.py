@@ -222,19 +222,26 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("All done!")
         # Only needs to track description?
         return result
-
+    """
 
     @toolkit.chained_action
     def package_update(self, action, context, data_dict=None):
-        log.info("An package has been updated")
+        log.info("A package has been updated")
         result = action(context, data_dict)
-        dataset_id = result['id']
-        dataset_name = result['title_translated']['en']
-        dataset_description_en = result['notes_translated']['en']
-        dataset_description_fr = result['notes_translated']['fr']
-        self.meta_authorize.set_dataset_name(dataset_id, dataset_name)
-        self.meta_authorize.set_dataset_description(dataset_id, 'en', dataset_description_en)
-        self.meta_authorize.set_dataset_description(dataset_id, 'fr', dataset_description_fr)
+        if(result['type'] != 'dataset'):
+            log.info("Updated package not a dataset")
+            return result
+        try:
+            dataset_id = result['id']
+            dataset_name = result['title_translated']['en']
+            dataset_description_en = result['notes_translated']['en']
+            dataset_description_fr = result['notes_translated']['fr']
+            self.meta_authorize.set_dataset_name(dataset_id, dataset_name)
+            self.meta_authorize.set_dataset_description(dataset_id, 'en', dataset_description_en)
+            self.meta_authorize.set_dataset_description(dataset_id, 'fr', dataset_description_fr)
+        except:
+            log.info("Something went wrong.")
+            log.info(result)
         # Only needs to track description?
         return result
 
@@ -242,29 +249,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def package_delete(action, context, data_dict=None):
         log.info("An package has been deleted")
         # Only needs to track description?
+        # Delete all the templates and attributes associated too
         result = action(context, data_dict)
         log.info(result['owner_org'])
         log.info(result['id'])
         log.info(result['title_translated']['en'])
         log.info("All done!")
-        # Only needs to track description?
         return result
-    """
 
     # Temp method while above issue is resolved
     @toolkit.chained_action
     def package_create(self, action, context, data_dict=None):
-        return action(context, data_dict)
-
-
-    # Temp method while above issue is resolved
-    @toolkit.chained_action
-    def package_update(self, action, context, data_dict=None):
-        return action(context, data_dict)
-
-    # Temp method while above issue is resolved
-    @toolkit.chained_action
-    def package_delete(self, action, context, data_dict=None):
         return action(context, data_dict)
 
     # IConfigurer
@@ -294,6 +289,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
+        log.info("After show")
         log.info("Context")
         log.info(context)
 
@@ -310,8 +306,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
 
         log.info("This is not before index, filtering")
-        log.info("Initial pkg_dict:")
-        log.info(pkg_dict)
+        #log.info("Initial pkg_dict:")
+        #log.info(pkg_dict)
 
         # Description
         if 'notes' in pkg_dict and pkg_dict['notes']:
@@ -368,8 +364,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'xml_location_url' not in pkg_dict:
                 pkg_dict['xml_location_url'] = ""
 
-        log.info("Final pkg_dict:")
-        log.info(pkg_dict)
+        #log.info("Final pkg_dict:")
+        #log.info(pkg_dict)
         return pkg_dict
 
     def after_search(self, search_results, search_params):
@@ -458,11 +454,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_update(self, context, pkg_dict):
+        
         log.info("HIT after update")
-        log.info(context)
-
-        log.info("Updated pkg_dict")
-        log.info(pkg_dict)
 
         # Only update public visibility settings if the field exists in pkg_dict
         if 'public-visibility' not in pkg_dict:
@@ -491,7 +484,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def before_index(self, pkg_dict):
     
-        log.info("hit before_index")
+        log.info("hit beforeindex")
+
+        log.info(pkg_dict['title'])
+
+        if(pkg_dict['type'] != 'dataset'):
+            log.info("This is not a dataset. Returning")
+            return pkg_dict
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
