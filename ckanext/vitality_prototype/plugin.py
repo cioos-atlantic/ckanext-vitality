@@ -341,7 +341,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if extra_keys != set():
             log.info("Extra keys found!")
             log.info(extra_keys)
-            self.meta_authorize.add_metadata_fields(dataset_id, extra_keys)
+            templates = self.meta_authorize.get_templates(dataset_id)
+            self.meta_authorize.add_metadata_fields(dataset_id, extra_keys, templates['Full'])
             #TODO Call and implement add metadata fields
 
         # Filter metadata fields
@@ -395,6 +396,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info('Parsing search data')
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
+            log.info(pkg_dict)
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
