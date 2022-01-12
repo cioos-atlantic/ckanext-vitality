@@ -329,17 +329,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             user = context['auth_user_obj']
             user_id = user.id
 
-        # Load dataset fields
-        dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
         
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
 
-        #TODO check for keys matching
+        # Load dataset fields
+        dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
+        # Extra keys are checked here
         extra_keys = self.meta_authorize.keys_match(pkg_dict, dataset_fields)
         if extra_keys != set():
-            log.info("Extra keys found!")
+            log.info("Extra keys found in after show! Warning!")
             log.info(extra_keys)
             templates = self.meta_authorize.get_templates(dataset_id)
             self.meta_authorize.add_metadata_fields(dataset_id, extra_keys, templates['Full'])
@@ -524,6 +524,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # Adds the full and minimal template
             self.meta_authorize.add_template_full(dataset_id, full_id, full_name, generate_default_fields(), full_description)
             self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
+
             self.meta_authorize.set_visible_fields(
                 minimal_id,
                 generate_whitelist(
@@ -544,6 +545,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 self.meta_authorize.set_template_access(str(role), full_id)
 
             #Add serves for organizations
+
+
             
             
         return pkg_dict

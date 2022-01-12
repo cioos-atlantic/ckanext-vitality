@@ -38,13 +38,14 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             #TODO Update with templates
             # Get the names of the existing fields for this dataset
+            log.info("adding extra fields")
             existing_fields = session.read_transaction(self.__read_elements, dataset_id)
             existing_names = [x[0] for x in existing_fields.items()]
             # For every new field to add
             for f in fields:
+                log.info("%s adding field", f[0])
                 # Only add the new field if a field with that name doesn't already exist
                 if f[0] not in existing_names:
-                    log.info("%s is not in existing", f[0])
                     session.write_transaction(self.__write_metadata_field, f[0], str(f[1]), template_id)
 
     def add_org(self, org_id, users, org_name=None):
@@ -349,7 +350,6 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_metadata_field(tx, name, id, template_id):
-        log.info("Adding new field %s with %s for %s", name, id, template_id)
         if name in constants.MINIMUM_FIELDS:
             result = tx.run("MATCH (t:template {id:'"+template_id+"'}) CREATE (t)-[:can_see]->(:element {name:'"+name+"',id:'"+id+"',required:true})")
         else:
