@@ -18,6 +18,16 @@ class _GraphMetaAuth(MetaAuthorize):
         self.driver.close()
 
     def add_dataset(self, dataset_id, owner_id, dname=None):
+        """
+        Adds a dataset to the database and assigns an organization owner
+        
+        Parameters
+        ----------
+        dataset_id : string
+            The UUID of the dataset to create
+        owner_id : string
+            The UUID of the organization that owns the dataset
+        """
         with self.driver.session() as session:
             # Check to see if the dataset already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_dataset, dataset_id) != None:
@@ -26,6 +36,16 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__bind_dataset_to_org, owner_id, dataset_id)
 
     def add_group(self, group_id, users):
+        """
+        Adds a group to the database and binds users to membership
+        
+        Parameters
+        ----------
+        group_id : string
+            The UUID of the group to create
+        users : dict
+            A dictionary of users to put into the group
+        """
         with self.driver.session() as session:
             # Check to see if the group already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_group, group_id):
@@ -35,20 +55,40 @@ class _GraphMetaAuth(MetaAuthorize):
                 session.write_transaction(self.__bind_user_to_group, group_id, user['id'])
 
     def add_metadata_fields(self, dataset_id, fields, template_id):
+        """
+        Adds new metadata fields as elements to the dataset and attaches them to a template
+        
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to add the fields to
+        fields : set
+            A set of tuples with the name of the new field and a generated uuid
+        template_id : string
+            The id/uuid of the full template for the dataset
+        """
         with self.driver.session() as session:
-            #TODO Update with templates
-            # Get the names of the existing fields for this dataset
-            log.info("adding extra fields")
             existing_fields = session.read_transaction(self.__read_elements, dataset_id)
             existing_names = [x[0] for x in existing_fields.items()]
             # For every new field to add
             for f in fields:
-                log.info("%s adding field", f[0])
                 # Only add the new field if a field with that name doesn't already exist
                 if f[0] not in existing_names:
                     session.write_transaction(self.__write_metadata_field, f[0], str(f[1]), template_id)
 
-    def add_org(self, org_id, users, org_name=None):
+    def add_org(self, org_id, users, org_name=None):        
+        """
+        Adds new organization into the database and adds users to membership
+        
+        Parameters
+        ----------
+        org_id : string
+            The id/uuid of the new organization
+        users : list
+            A list of user dictionaries containing user ids
+        org_name : string
+            The name of the new organization
+        """
         with self.driver.session() as session:
             # Check to see if the org already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_org_by_id, org_id):
@@ -62,11 +102,33 @@ class _GraphMetaAuth(MetaAuthorize):
                 if not session.read_transaction(self.__has_role, user['id'], 'admin'):
                     session.write_transaction(self.__bind_user_to_role, user['id'], member_id)
 
-    def add_role(self, id, name=None):
+    def add_role(self, id, name=None):        
+        """
+        Adds new role into the database
+        
+        Parameters
+        ----------
+        role_id : string
+            The id/uuid of the new role
+        role_name : string
+            The name of the new role
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__write_role, id, name)
 
     def add_user(self, user_id, user_name = None, user_email = None):
+        """
+        Adds new user into the database. If a user with that id already exists they will not be added
+        
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the new user
+        user_name : string
+            The username of the new user
+        user_email : string
+            The email of the new user
+        """
         with self.driver.session() as session:
             # Check to see if the user already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_user_by_id, user_id) != None:
@@ -74,14 +136,42 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__write_user, user_id, user_name, user_email)
 
     def add_template(self, dataset_id, template_id, template_name=None, template_description=None):
-        log.info('Creating a new template')
+        """
+        Adds new tenplate into the database and binds to a dataset
+        
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of dataset to bind the template to
+        template_id : string
+            The id/uuid of new template
+        template_name : string
+            The name of the new template
+        template_description : string
+            The description of the new template
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__write_template, template_id, template_name, template_description)
             session.write_transaction(self.__bind_template_to_dataset, template_id, dataset_id)        
     
-    # Adds template and also adds the fields 
     # TODO Generate fields separately and set instead of two different instantiation methods
     def add_template_full(self, dataset_id, template_id, template_name, fields, template_description = None):
+        """
+        Adds new full tenplate into the database, binds to a dataset, and creates a set of fields to attach
+        
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of dataset to bind the template to
+        template_id : string
+            The id/uuid of new template
+        template_name : string
+            The name of the new template
+        fields : dictionary
+            A dictionary field names as keys and their corresponding uuids as values.
+        template_description : string
+            The description of the new template
+        """
         with self.driver.session() as session:
             # Default templates already exist, skipping
             if session.read_transaction(self.__read_templates, dataset_id):
@@ -89,32 +179,93 @@ class _GraphMetaAuth(MetaAuthorize):
                 return
             # Add full template
             self.add_template(dataset_id, template_id, template_name, template_description)
-            # create the fields as well
+            # Fullcreate the fields as well
             for name,id in fields.items():
                 session.write_transaction(self.__write_metadata_field, name, id, template_id)
 
 
     def delete_organization(self, org_id):
+        """
+        Deletes an organization given its ID
+        
+        Parameters
+        ----------
+        org_id : string
+            The id/uuid of organization to delete
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__delete_organization, org_id)
             
     def delete_user(self, user_id):
+        """
+        Deletes an user given its ID
+        
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of organization to delete
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__delete_user, user_id)
 
     def detach_user_role(self, user_id, role_id):
+        """
+        Deletes the relationship between a role and a give user
+        
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user to detach the template from
+        template_id : string
+            The id/uuid of template to detach from the user
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__detach_user_from_role, user_id, role_id)
 
     def get_admins(self):
+        """ 
+        Gets a list of admin users in the database
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        A dictionary of users with 'id' as the key and the associated user id as the value
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__read_users_admins)
 
     def get_dataset(self, dataset_id):
+        """ 
+        When given a dataset id, returns the id if it exists in the database and None if it does not
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to check
+
+        Returns
+        -------
+        The dataset id if it exists and None if it does not
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__get_dataset, dataset_id)
             
     def get_metadata_fields(self, dataset_id):
+        """ 
+        Returns the elements managed by a dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to check
+
+        Returns
+        -------
+        The dataset id if it exists and None if it does not
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__read_elements, dataset_id)
 
@@ -126,6 +277,30 @@ class _GraphMetaAuth(MetaAuthorize):
         public_field_ids =  self.get_visible_fields(dataset_id, user_id='public')
         public_field_names = [f[0].encode("utf-8") for f in self.get_metadata_fields(dataset_id).items() if f[1] in public_field_ids]
         return public_field_names
+
+    def get_public_dataset(self, dataset_id):
+        with self.driver.session() as session:
+            related_dataset_id = session.read_transaction(self.__get_public_dataset, dataset_id)
+            return related_dataset_id
+
+    @staticmethod
+    def __get_public_dataset(tx, id):
+        records = tx.run("MATCH (x:dataset {id:'"+id+"'})-[:has_public_dataset]->(y:dataset) return y.id as id, y.name as name")      
+        for record in records:
+            return record    
+        return
+
+    def get_private_dataset(self, dataset_id):
+        with self.driver.session() as session:
+            related_dataset_id = session.read_transaction(self.__get_private_dataset, dataset_id)
+            return related_dataset_id
+
+    @staticmethod
+    def __get_private_dataset(tx, id):
+        records = tx.run("MATCH (x:dataset {id:'"+id+"'})<-[:has_public_dataset]-(y:dataset) return y.id as id, y.name as name")      
+        for record in records:
+            return record    
+        return
 
     def get_roles(self, org_id = None):
         with self.driver.session() as session:
@@ -278,10 +453,8 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_elements(tx, dataset_id):
-        #log.debug("Getting elements for dataset: %s", dataset_id)
         result = {}
         for record in tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)-[:can_see]->(e:element) RETURN DISTINCT e.name AS name, e.id AS id"):
-            #log.debug("record: %s", str(record))
             result[record['name']] = record['id']
         return result
 
@@ -323,7 +496,6 @@ class _GraphMetaAuth(MetaAuthorize):
         result = []
         for record in tx.run("MATCH (:role {id:'admin'})<-[:has_role]-(u:user) return u.id AS id"):
             result.append(record['id'])
-        log.info(result)
         return result
 
     @staticmethod

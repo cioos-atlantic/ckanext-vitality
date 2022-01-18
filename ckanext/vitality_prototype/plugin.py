@@ -164,66 +164,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         self.meta_authorize.delete_organization(organization_id)
         return result
 
-    # Datasets may already be tracked with before_index function
-    # TODO Confirm whether this is the case or if this sections is needed
-    # If before_index tracks, it may be more practical as the chained actions will put draft / in progress datasets
-    #   in the graph database unnecessarily
-    """
-    @toolkit.chained_action
-    def package_create(self, action, context, data_dict=None):
-        log.info("An package has been created")
-        result = action(context, data_dict)
-        owner_org = result['owner_org']
-        dataset_id = result['id']
-        dataset_name = result['title_translated']['en']
-        self.meta_authorize.add_dataset(dataset_id, owner_org, dataset_name)
-        # Double check dataset doesn't already exist
-        templates = self.meta_authorize.get_templates(dataset_id)
-        if len(templates) == 0:
-            if 'notes' in result and result['notes']:
-                try:
-                    dataset_notes = json.loads(result['notes'].encode('utf-8'))
-                    self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
-                    self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
-                except ValueError as err:
-                    log.info("No description found")
-
-            # Generate an id, name, and description for the default templates (full and minimal)
-            # TODO Create a better description based on the final
-            full_id = str(uuid.uuid4())
-            full_name = 'Full'
-            full_description = "This is the full, unrestricted template. Choosing this will display the full set of metadata for the assigned role."
-            minimal_id = str(uuid.uuid4())
-            minimal_name = "Minimal"
-            minimal_description = "This template restricts some metadata for the chosen role. Restricted fields include location and temporal data"
-
-            # Adds the full and minimal template
-            self.meta_authorize.add_template_full(dataset_id, full_id, full_name, generate_default_fields(), full_description)
-            self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
-            self.meta_authorize.set_visible_fields(
-                minimal_id,
-                generate_whitelist(
-                    default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
-                )
-            )
-            
-            log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
-
-            # Always add access for public and admin roles
-            # TODO Discuss change default for public?
-            self.meta_authorize.set_template_access('public', minimal_id)
-            self.meta_authorize.set_template_access('admin', full_id)
-
-            # Add access for any roles in the organization
-            for role in self.meta_authorize.get_roles(owner_org).values():
-                self.meta_authorize.set_template_access(str(role), full_id)
-
-            #Add serves for organizations
-        log.info("All done!")
-        # Only needs to track description?
-        return result
-    """
-
     @toolkit.chained_action
     def package_update(self, action, context, data_dict=None):
         log.info("A package has been updated")
@@ -290,8 +230,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
         log.info("After show")
-        log.info("Context")
-        log.info(context)
 
         log.info("Now checking if this is beforeIndex")
         log.info(context['package'].type)
@@ -365,8 +303,16 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'xml_location_url' not in pkg_dict:
                 pkg_dict['xml_location_url'] = ""
 
-        #log.info("Final pkg_dict:")
-        #log.info(pkg_dict)
+        related_dataset_id = self.meta_authorize.get_public_dataset(dataset_id)
+        if related_dataset_id:
+            # Link to related dataset if one is available
+            pkg_dict['notes_translated']['en']= "##[Click here to access the public dataset:](http://localhost:5000/dataset/" + related_dataset_id['id'] +")\n\n" + pkg_dict['notes_translated']['en']
+        else:
+            related_dataset_id = self.meta_authorize.get_private_dataset(dataset_id)
+            if related_dataset_id:
+                # Link to related dataset if one is available
+                pkg_dict['notes_translated']['en']= "##[Click here to access the private dataset:](http://localhost:5000/dataset/" + related_dataset_id['id'] +")\n\n" + pkg_dict['notes_translated']['en']
+            
         return pkg_dict
 
     def after_search(self, search_results, search_params):
@@ -381,25 +327,29 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info(user)
             log.info('Request from ' + user_id)
 
-        # Gets the number of results matching the search parameters (total)
-        log.info('# of total results ' + str(search_results['count']))
-
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
-        result_count = len(datasets)
-        log.info('Number of results loaded' + str(result_count))        
-        
-        # Gets the total number of results matching the search parameters
-        log.info('Number of results ' + str(len(search_results)))
 
         # Go through each of the datasets returned in the results
-        log.info('Parsing search data')
+        log.info('Parsing search data types')
+
+        public_search_results = []
+
+        #public_search_results = 
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
-            log.info(pkg_dict)
+            log.info(pkg_dict['title'])
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
+
+            # TODO Hide result if the search if a related dataset exists and is already being shown
+            # Should the public be the default or the private?
+            related_dataset_id = self.meta_authorize.get_public_dataset(dataset_id)
+            if(related_dataset_id):
+                continue
+            else:
+                public_search_results.append(pkg_dict)
 
             # Load dataset fields
             dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
@@ -410,7 +360,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # If no relation exists between user and dataset, treat as public
             if len(visible_fields) == 0:
                 visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
-                log.info('Public visible fields  ' + str(visible_fields))
 
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
@@ -448,7 +397,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             #   as it displays the scrubbed metadata in the xml
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-            
+
+        search_results['results'] = public_search_results
+        search_results['count'] = len(public_search_results)
         return search_results
 
     def after_create(self, context, pkg_dict):
