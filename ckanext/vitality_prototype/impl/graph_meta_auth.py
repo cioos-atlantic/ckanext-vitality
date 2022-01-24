@@ -270,47 +270,120 @@ class _GraphMetaAuth(MetaAuthorize):
             return session.read_transaction(self.__read_elements, dataset_id)
 
     def get_organization(self, organization_id):
+        """ 
+        Returns the information of a given organization
+
+        Parameters
+        ----------
+        organization_id : string
+            The id/uuid of a organization to check
+
+        Returns
+        -------
+        An organization object (name and id) if one exists, and none if one does not
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__get_org_by_id, organization_id)
 
     def get_public_fields(self, dataset_id):
+        """ 
+        Returns a list of fields in the dataset that are visible to the public / unconnected users
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset get visible fields for
+
+        Returns
+        -------
+        An organization object (name and id) if one exists, and none if one does not
+        """
         public_field_ids =  self.get_visible_fields(dataset_id, user_id='public')
         public_field_names = [f[0].encode("utf-8") for f in self.get_metadata_fields(dataset_id).items() if f[1] in public_field_ids]
         return public_field_names
 
-    def get_public_dataset(self, dataset_id):
-        with self.driver.session() as session:
-            related_dataset_id = session.read_transaction(self.__get_public_dataset, dataset_id)
-            return related_dataset_id
+    def get_roles(self, org_id = None):
+        """ 
+        Returns a list of roles in the database. If an organization is provided lists roles owned by that org
 
-    @staticmethod
-    def __get_public_dataset(tx, id):
-        records = tx.run("MATCH (x:dataset {id:'"+id+"'})-[:has_public_dataset]->(y:dataset) return y.id as id, y.name as name")      
-        for record in records:
-            return record    
-        return
+        Parameters
+        ----------
+        org_id : string (optional)
+            The id/uuid of an organization to get roles from
+
+        Returns
+        -------
+        A list of all roles (if no org provided) or roles owned by an organization (if org provided)
+        """
+        with self.driver.session() as session:
+            return session.read_transaction(self.__read_roles, org_id)
+
 
     def get_private_dataset(self, dataset_id):
+        """ 
+        Returns the UUID of the private version of a related dataset, if one exists
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to check for a related dataset
+
+        Returns
+        -------
+        The id of the related private dataset if one exists, if not then returns None
+        """
         with self.driver.session() as session:
             related_dataset_id = session.read_transaction(self.__get_private_dataset, dataset_id)
             return related_dataset_id
 
-    @staticmethod
-    def __get_private_dataset(tx, id):
-        records = tx.run("MATCH (x:dataset {id:'"+id+"'})<-[:has_public_dataset]-(y:dataset) return y.id as id, y.name as name")      
-        for record in records:
-            return record    
-        return
+    def get_public_dataset(self, dataset_id):
+        """ 
+        Returns the UUID of the public version of a related dataset, if one exists
 
-    def get_roles(self, org_id = None):
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to check for a related dataset
+
+        Returns
+        -------
+        The id of the related public dataset if one exists, if not then returns None
+        """
         with self.driver.session() as session:
-            return session.read_transaction(self.__read_roles, org_id)
+            related_dataset_id = session.read_transaction(self.__get_public_dataset, dataset_id)
+            return related_dataset_id
 
     def get_templates(self, dataset_id):
+        """ 
+        Returns a dictionary of available templates for a given dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to get templates from
+
+        Returns
+        -------
+        A dictionary of the templates with the name as the key and the id as the value
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__read_templates, dataset_id)    
             
     def get_template_access_for_role(self, dataset_id, role_id):
+        """ 
+        Returns the template name assigned to a role for a given dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to check template access for
+        role_id : string
+            The id/uuid of a role to check the assigned template for
+
+        Returns
+        -------
+        The name of the template as a String
+        """
         with self.driver.session() as session:
             template_id = session.read_transaction(self.__get_template_access_for_role, dataset_id, role_id)
             if template_id != None:
@@ -320,6 +393,20 @@ class _GraphMetaAuth(MetaAuthorize):
                 return None
 
     def get_template_access_for_user(self, dataset_id, user_id):
+        """ 
+        Returns the template name assigned to a user (through a role) for a given dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to check template access for
+        user_id : string
+            The id/uuid of a user to check the assigned template for
+
+        Returns
+        -------
+        The name of the template as a String
+        """
         with self.driver.session() as session:
             template_id = session.read_transaction(self.__get_template_access_for_user, dataset_id, user_id)
             if template_id != None:
@@ -329,39 +416,136 @@ class _GraphMetaAuth(MetaAuthorize):
                 return None 
 
     def get_user(self, id):
+        """ 
+        Returns a user object given the user's ID
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of a user to check
+
+        Returns
+        -------
+        A user object with the user's name, id, and email
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__get_user_by_id, id)
 
     def get_user_by_username(self, username):
+        """ 
+        Returns a user object given the user's username
+
+        Parameters
+        ----------
+        username : string
+            The username of a user to check
+
+        Returns
+        -------
+        A user object with the user's name, id, and email
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__get_user_by_username, username)
 
     def get_users(self):
+        """ 
+        Returns a list of all users in the database
+
+        Returns
+        -------
+        A list containing user ids
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__read_users)
 
     def get_visible_fields(self, dataset_id, user_id):
+        """ 
+        Returns the visible fields of a dataset for a user
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check
+        user_id : string
+            The user to check field access for
+
+        Returns
+        -------
+        A list of element UUIDs representing the visible fields
+        """
         with self.driver.session() as session:
             return session.read_transaction(self.__read_visible_fields, dataset_id, user_id)
 
     def set_dataset_description(self, dataset_id, language, description):
+        """ 
+        Sets a description for a dataset in a given language
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to assign a description to
+        language : string
+            A two letter identifier for the language of the description
+        description : string
+            The description to be applied to the dataset
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__set_dataset_description, dataset_id, language, description)
 
     def set_dataset_name(self, dataset_id, dataset_name):
+        """ 
+        Sets the name of the dataset to the provided string
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to assign a name to
+        dataset_name : string
+            The name to be applied to the dataset
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__set_dataset_name, dataset_id, dataset_name)
 
     def set_template_access(self, role_id, template_id):
+        """ 
+        Sets a 'uses_template' relationship between a given role and template for a dataset
+
+        Parameters
+        ----------
+        role_id : string
+            The id/uuid of a role to 
+        language : string
+            A two letter identifier for the language of the description
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__bind_role_to_template, role_id, template_id)
 
     # Used to set access for users to edit org settings on the landing page
     def set_admin_form_access(self, user_id, org_id):
+        """ 
+        Sets a 'serves' relationship between a user and organization which allows accessing the organization on the admin form
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of a user to provide access to
+        org_id : string
+            The id/uuid of an organization to provide access to
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__bind_user_to_org, user_id, org_id)
 
     def set_user_gid(self, id, gid):
+        """ 
+        Sets the GID (Google ID) of a user in the database
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user in the database
+        gid : string
+            The value to set the 'gid' (Google ID) field to
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__set_user_gid, id, gid)
 
@@ -418,6 +602,20 @@ class _GraphMetaAuth(MetaAuthorize):
         for record in records:
             return record    
         return None
+
+    @staticmethod
+    def __get_private_dataset(tx, id):
+        records = tx.run("MATCH (x:dataset {id:'"+id+"'})<-[:has_public_dataset]-(y:dataset) return y.id as id, y.name as name")      
+        for record in records:
+            return record    
+        return
+        
+    @staticmethod
+    def __get_public_dataset(tx, id):
+        records = tx.run("MATCH (x:dataset {id:'"+id+"'})-[:has_public_dataset]->(y:dataset) return y.id as id, y.name as name")      
+        for record in records:
+            return record    
+        return
 
     @staticmethod
     def __get_template_name(tx, template_id):
