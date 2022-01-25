@@ -550,33 +550,105 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__set_user_gid, id, gid)
 
     def set_user_username(self, id, username):
+        """ 
+        Sets the user's CKAN username in the database
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user in the database
+        username : string
+            The value to set the 'username' field to
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__set_user_gid, id, username)            
 
     def set_user_email(self, id, email):
+        """ 
+        Sets the email address of a user in the database
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user in the database
+        email : string
+            The value to set the 'email' field to
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__set_user_email, id, email)   
 
     def set_user_role(self, user_id, role_id):
+        """ 
+        Gives a user access to a role in the database
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user in the database
+        role_id : string
+            The id/uuid of the role in the database
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__bind_user_to_role, user_id, role_id)
 
     def set_visible_fields(self, template_id, whitelist):
+        """ 
+        Allows a given template to be able to see a dataset's fields provided in the whitelist
+
+        Parameters
+        ----------
+        template_id : string
+            The id/uuid of the template in the database
+        whitelist : list
+            A list of UUIDs of the fields in the database
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__bind_fields_to_template, template_id, whitelist)
 
     def set_organization_name(self, org_id, org_name):
+        """ 
+        Sets the name of an organization in the database
+
+        Parameters
+        ----------
+        org_id : string
+            The id/uuid of the organization in the database
+        org_name : string
+            The organization name to be set
+        """
         with self.driver.session() as session:
             session.write_transaction(self.__set_organization_name, org_id, org_name)
 
 
     @staticmethod
     def __set_organization_name(tx, id, name):
+        """ 
+        Runs a query to set the name of a given organization
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the organization in the database
+        name : string
+            The value to set the 'name' field to
+        """
         records = tx.run("MATCH (o:organization {id:'"+id+"'}) set o.name ='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
     @staticmethod
     def __get_dataset(tx, id):
+        """ 
+        Runs a query to return a dataset's ID if it exists in the database
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to retrieve
+
+        Returns
+        -------
+        The dataset id if it exists, None if it does not
+        """
         records = tx.run("MATCH (d:dataset {id:'"+id+"'}) return d.id as id")
         for record in records:
             return record['id']
@@ -584,6 +656,18 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __get_group(tx, id):
+        """ 
+        Runs a query to return a group's ID if it exists in the database
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the group to retrieve
+
+        Returns
+        -------
+        The group id if it exists, None if it does not
+        """
         records = tx.run("MATCH (g:group {id:'"+id+"'}) return g.id as id")   
         for record in records:
             return record['id']
@@ -591,6 +675,18 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __get_org_by_id(tx, id):
+        """ 
+        Runs a query to return an organization's name and id given the id
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the organization to retrieve
+
+        Returns
+        -------
+        An object with the organization id and name if it exists, None if it does not
+        """
         records = tx.run("MATCH (o:organization {id:'"+id+"'}) return o.id AS id, o.name AS name")      
         for record in records:
             return record    
@@ -598,6 +694,18 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __get_org_by_name(tx, name):
+        """ 
+        Runs a query to return an organization's name and id given the name
+
+        Parameters
+        ----------
+        name : string
+            The name of the organization to retrieve
+
+        Returns
+        -------
+        An object with the organization id and name if it exists, None if it does not
+        """
         records = tx.run("MATCH (o:organization {name:'"+name+"'}) return o.id AS id, o.name AS name")      
         for record in records:
             return record    
@@ -605,13 +713,37 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __get_private_dataset(tx, id):
+        """ 
+        Given a dataset, runs a query to return the id of its related private dataset, if one exists
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to check for a related private dataset
+
+        Returns
+        -------
+        An object with the id and name of the private dataset if it exists, None if it does not
+        """
         records = tx.run("MATCH (x:dataset {id:'"+id+"'})<-[:has_public_dataset]-(y:dataset) return y.id as id, y.name as name")      
         for record in records:
             return record    
-        return
+        return None
         
     @staticmethod
     def __get_public_dataset(tx, id):
+        """ 
+        Given a dataset, runs a query to return the id of its related public dataset, if one exists
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to check for a public private dataset
+
+        Returns
+        -------
+        An object with the id and name of the public dataset if it exists, None if it does not
+        """
         records = tx.run("MATCH (x:dataset {id:'"+id+"'})-[:has_public_dataset]->(y:dataset) return y.id as id, y.name as name")      
         for record in records:
             return record    
@@ -619,24 +751,78 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __get_template_name(tx, template_id):
+        """ 
+        Given a template id, runs a query to return the name of the template
+
+        Parameters
+        ----------
+        template_id : string
+            The id/uuid of the template to get a name of
+
+        Returns
+        -------
+        The template name as a string if the dataset exists, None if it does not
+        """
         records = tx.run("MATCH (t:template {id:'"+template_id+"'}) return t.name AS name")
         for record in records:
             return record['name']
+        return None
 
     @staticmethod
     def __get_template_access_for_role(tx, dataset_id, role_id):
+        """ 
+        Given a dataset and role, returns the template level of access that role has to the dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset
+        role_id : string
+            The id/uuid of the role to check access for
+
+        Returns
+        -------
+        The id of the template as a string if a relationship exists, None if it does not
+        """
         records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'"+role_id+"'}) return t.id as id")
         for record in records:
             return record['id']
+        return None
 
     @staticmethod
     def __get_template_access_for_user(tx, dataset_id, user_id):
+        """ 
+        Given a dataset and user, returns the template level of access that user has to the dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset
+        user_id : string
+            The id/uuid of the role to check access for
+
+        Returns
+        -------
+        The id of the template as a string if a relationship exists, None if it does not
+        """
         records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role)<-[:has_role]-(u:user {id:'"+user_id+"'}) return t.id as id")
         for record in records:
             return record['id']
 
     @staticmethod 
     def __get_user_by_id(tx, id):
+        """ 
+        Runs a query to return an user's name and id given the id
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to retrieve
+
+        Returns
+        -------
+        An object with the user id and name if it exists, None if it does not
+        """
         records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id as id, u.username as username, u.email as email")   
         for record in records:
             return record
@@ -644,6 +830,18 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod 
     def __get_user_by_username(tx, username):
+        """ 
+        Runs a query to return an user's name and id given the username
+
+        Parameters
+        ----------
+        username : string
+            The id/uuid of the user to retrieve
+
+        Returns
+        -------
+        An object with the user id and name if it exists, None if it does not
+        """
         records = tx.run("MATCH (u:user {username:'"+username+"'}) return u.id as id, u.username as username, u.email as email")   
         for record in records:
             return record
@@ -651,6 +849,18 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_elements(tx, dataset_id):
+        """ 
+        Runs a query to retrieve all elements associated with a provided dataset
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to retrieve
+
+        Returns
+        -------
+        A dictionary of elements where each element name is the key and the id is the value
+        """
         result = {}
         for record in tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)-[:can_see]->(e:element) RETURN DISTINCT e.name AS name, e.id AS id"):
             result[record['name']] = record['id']
@@ -658,9 +868,17 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_roles(tx, org_id=None):
-        """
-        Returns all roles managed by the provided organization
-        If no org_id provided, returns all roles
+        """ 
+        Returns all roles in the database or roles managed by an organization if an id is provided
+
+        Parameters
+        ----------
+        org_id : string
+            The id/uuid of the organization to retrieve roles from (optional)
+
+        Returns
+        -------
+        A dictionary of roles with the role name as the key and role id as the value.
         """
         result = {}
         if(org_id==None):
