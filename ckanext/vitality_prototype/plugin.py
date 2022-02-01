@@ -1,4 +1,5 @@
 import logging
+from re import search
 import uuid
 import copy
 import constants
@@ -13,7 +14,7 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 import ckan.plugins.interfaces as interfaces
 from ckan.common import config
-
+#TODO add variable for address
 
 log = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     """
     plugins.implements(plugins.IConfigurer)
+    plugins.implements(plugins.IFacets)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions, inherit=True)
@@ -191,16 +193,19 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Only needs to track description?
         # Delete all the templates and attributes associated too
         result = action(context, data_dict)
-        log.info(result['owner_org'])
-        log.info(result['id'])
-        log.info(result['title_translated']['en'])
-        log.info("All done!")
         return result
 
     # Temp method while above issue is resolved
     @toolkit.chained_action
     def package_create(self, action, context, data_dict=None):
         return action(context, data_dict)
+
+    # Interfaces
+    def dataset_facets(self, facets_dict, package_type):
+        log.info("Dataset facets here:")
+        log.info(facets_dict)
+        facets_dict['ext_private_tags'] = toolkit._('Private tags')
+        return facets_dict
 
     # IConfigurer
 
@@ -244,8 +249,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
 
         log.info("This is not before index, filtering")
-        #log.info("Initial pkg_dict:")
-        #log.info(pkg_dict)
 
         # Description
         if 'notes' in pkg_dict and pkg_dict['notes']:
@@ -319,23 +322,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
-            log.info('Public user')
             user_id = 'public'   
         else:
             user = toolkit.c.userobj
             user_id = user.id
-            log.info(user)
-            log.info('Request from ' + user_id)
 
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
 
         # Go through each of the datasets returned in the results
-        log.info('Parsing search data types')
-
         public_search_results = []
-
-        #public_search_results = 
+        removal_count = 0
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
             log.info(pkg_dict['title'])
@@ -345,11 +342,22 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # TODO Hide result if the search if a related dataset exists and is already being shown
             # Should the public be the default or the private?
-            related_dataset_id = self.meta_authorize.get_public_dataset(dataset_id)
-            if(related_dataset_id):
-                continue
+            related_dataset = self.meta_authorize.get_public_dataset(dataset_id)
+
+            # For private: if user doesn't have access hide. For public: if user has access to private hide
+            if related_dataset:
+                template_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
+                if(template_access != "Full"):
+                    removal_count+= 1
+                    continue
             else:
-                public_search_results.append(pkg_dict)
+                related_dataset = self.meta_authorize.get_private_dataset(dataset_id)
+                if(related_dataset):
+                    template_access = self.meta_authorize.get_template_access_for_user(related_dataset['id'], user_id)
+                    if(template_access == "Full"):
+                        removal_count+= 1
+                        continue
+            public_search_results.append(pkg_dict)
 
             # Load dataset fields
             dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
@@ -385,6 +393,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if(user_dataset_access != "Full"):
                 pkg_dict['resources'].append({"format" : "Restricted metadata"})
 
+            # Link to related dataset if one is available so it shows in harvest also add a tag for users to know
+            # TODO Edit the link to be flexible
+            ckan_dataset_address = "http://localhost:5000/dataset/"
+            if related_dataset:
+                pkg_dict['notes_translated']['en']+= "\n\n[Click here to access the private version of the dataset](" + ckan_dataset_address + related_dataset['id'] +")"
+                pkg_dict['resources'].append({"format" : "Paired dataset"})
+
             # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
@@ -399,7 +414,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['xml_location_url'] = '-'
 
         search_results['results'] = public_search_results
-        search_results['count'] = len(public_search_results)
+        search_results['count']-= removal_count
         return search_results
 
     def after_create(self, context, pkg_dict):
@@ -455,7 +470,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) == 0:
             if 'notes' in pkg_dict and pkg_dict['notes']:
-                log.info(type(pkg_dict['notes']))
                 try:
                     dataset_notes = json.loads(pkg_dict['notes'].encode('utf-8'))
                     self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
@@ -482,9 +496,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                     default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
                 )
             )
-            
-            log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
-
+        
             # Always add access for public and admin roles
             # TODO Discuss change default for public?
             self.meta_authorize.set_template_access('public', minimal_id)
