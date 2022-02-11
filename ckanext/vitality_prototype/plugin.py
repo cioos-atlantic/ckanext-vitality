@@ -91,7 +91,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         self.meta_authorize.detach_user_role(user_id, role_id)
         return action(context,data_dict)
 
-
     # Triggers when a user's information is updated (name/email)
     @toolkit.chained_action
     def user_update(self, action, context, data_dict=None):
@@ -202,9 +201,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     # Interfaces
     def dataset_facets(self, facets_dict, package_type):
-        log.info("Dataset facets here:")
+        #facets_dict['access_level'] = toolkit._('Access')
         log.info(facets_dict)
-        facets_dict['ext_private_tags'] = toolkit._('Private tags')
+
+        # For Python 3 upgrade: py3 lets you append to start of ordered dict
         return facets_dict
 
     # IConfigurer
@@ -246,7 +246,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if (type(context['user']) == str or type(context['user']) == unicode) and context['user'].encode('utf-8') == 'default':
             log.info("This is before index we're done here.")
             return pkg_dict
-
 
         log.info("This is not before index, filtering")
 
@@ -317,6 +316,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['notes_translated']['en']= "##[Click here to access the private dataset:](http://localhost:5000/dataset/" + related_dataset_id['id'] +")\n\n" + pkg_dict['notes_translated']['en']
             
         return pkg_dict
+
+    def before_search(self, search_params):
+        log.info("This is before the search")
+        log.info(search_params)
+
+        if "access_level:\"Private\"" not in search_params['fq']:
+            log.info("not searching for private")
+            #search_params['q'] = '-access_level: Private'
+            
+        return search_params
+
 
     def after_search(self, search_results, search_params):
 
