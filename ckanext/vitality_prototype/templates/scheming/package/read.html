@@ -16,3 +16,14 @@
     {% endif %}
 
 {% endblock %}
+
+  {% block package_tags %}
+    <p>
+    Open Variables:
+    </p>
+    {% snippet "package/snippets/tags.html", tags=pkg.tags %}
+    <p>
+    Restricted Variables:
+    </p>
+    {% snippet "package/snippets/tags.html", tags=pkg.keywords_private['en'] %}
+  {% endblock %}
