@@ -1,3 +1,4 @@
+from json import tool
 import logging
 from re import search
 import uuid
@@ -39,6 +40,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions, inherit=True)
+    plugins.implements(plugins.IDatasetForm)
 
     # Authorization Interface
     meta_authorize = None
@@ -51,7 +53,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     
     def get_actions(self):
-        log.info("got actions")
         return {
             "organization_update" : self.organization_update,
             "organization_create" : self.organization_create,
@@ -181,7 +182,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             self.meta_authorize.set_dataset_description(dataset_id, 'en', dataset_description_en)
             self.meta_authorize.set_dataset_description(dataset_id, 'fr', dataset_description_fr)
         except:
-            log.info("Something went wrong.")
+            log.info("Something went wrong with the package update.")
             log.info(result)
         # Only needs to track description?
         return result
@@ -199,12 +200,64 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def package_create(self, action, context, data_dict=None):
         return action(context, data_dict)
 
+    def create_package_schema(self):
+        schema = super(Vitality_PrototypePlugin, self).create_package_schema()
+        schema.update({
+            'eov_private': [toolkit.get_validator('ignore_missing'),
+                            toolkit.get_converter('convert_to_extras')
+            ]
+        })
+        return schema
+
+    def _modify_package_schema(self, schema):
+        schema.update({
+            'eov_private': [toolkit.get_validator('ignore_missing'),
+                            toolkit.get_converter('convert_to_extras')]
+        })
+        schema.update({
+            'keywords_private': [toolkit.get_validator('ignore_missing'),
+                            toolkit.get_converter('convert_to_tags')]
+        })
+        log.info("Modify package schema happened")
+        return schema
+
+    def update_package_schema(self):
+        schema = super(Vitality_PrototypePlugin, self).update_package_schema()
+        schema = self._modify_package_schema(schema)
+        return schema
+
+    def show_package_schema(self):
+        log.info("Show package schema happened")
+        schema = super(Vitality_PrototypePlugin, self).show_package_schema()
+        schema.update({
+            'eov_private': [toolkit.get_converter('convert_from_extras'), 
+                            toolkit.get_validator('ignore_missing')]
+        })
+        schema.update({
+            'keywords': [toolkit.get_converter('convert_from_tags'), 
+                            toolkit.get_validator('ignore_missing')]
+        })
+        return schema
+
+    def is_fallback(self):
+        # Return True to register this plugin as the default handler for
+        # package types not handled by any other IDatasetForm plugin.
+        return False
+
+    def package_types(self):
+        # This plugin doesn't handle any special package types, it just
+        # registers itself as the default (above).
+        return []
+
     # Interfaces
     def dataset_facets(self, facets_dict, package_type):
-        #facets_dict['access_level'] = toolkit._('Access')
+        facets_dict['eov_private'] = toolkit._('EOV - Private')
         log.info(facets_dict)
 
         # For Python 3 upgrade: py3 lets you append to start of ordered dict
+        return facets_dict
+
+    def organization_facets(self, facets_dict, organization_type, package_type, ):
         return facets_dict
 
     # IConfigurer
@@ -234,7 +287,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
-        log.info("After show")
 
         log.info("Now checking if this is beforeIndex")
         log.info(context['package'].type)
@@ -255,6 +307,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
+
+        log.info(pkg_dict)
 
         # Check to see if the dataset has just been created
         if(self.meta_authorize.get_dataset(dataset_id) == None):
@@ -321,9 +375,33 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info("This is before the search")
         log.info(search_params)
 
-        if "access_level:\"Private\"" not in search_params['fq']:
-            log.info("not searching for private")
-            #search_params['q'] = '-access_level: Private'
+        facet_query = search_params['fq']
+        log.info(facet_query)
+        final_query = ""
+
+        if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
+            log.info("facet_search")
+            fq_split = facet_query.split(' ')
+            for x in fq_split:
+                if(x.startswith('eov:') and '"' in x):
+                    eov = x.split('"')[1]
+                    eov_private = 'res_extras_eov_private:"' + eov + '"'
+                    x= '(eov:"' + eov + '" OR ' + eov_private + ')'
+                    log.info(x)
+                elif(x.startswith('tags:') and '"' in x):
+                    tags = x.split('"')[1]
+                    tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                    x= '(tags:"' + tags + '" OR ' + tags_private + ')'
+                    log.info(x)
+                elif(x.startswith('tags_en:') and '"' in x):
+                    tags = x.split('"')[1]
+                    tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                    x= '(tags_en:"' + tags + '" OR ' + tags_private + ')'
+                    log.info(x)
+                final_query += x + ' '
+            log.info(final_query)
+            search_params['fq'] = final_query.strip()
+        log.info(search_params)
             
         return search_params
 
@@ -346,6 +424,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
             log.info(pkg_dict['title'])
+
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
