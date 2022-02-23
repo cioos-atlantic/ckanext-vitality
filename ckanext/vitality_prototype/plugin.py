@@ -374,35 +374,31 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def before_search(self, search_params):
         log.info("This is before the search")
         log.info(search_params)
-
         facet_query = search_params['fq']
-        log.info(facet_query)
         final_query = ""
 
         if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
-            log.info("facet_search")
             fq_split = facet_query.split(' ')
             for x in fq_split:
                 if(x.startswith('eov:') and '"' in x):
                     eov = x.split('"')[1]
                     eov_private = 'res_extras_eov_private:"' + eov + '"'
                     x= '(eov:"' + eov + '" OR ' + eov_private + ')'
-                    log.info(x)
                 elif(x.startswith('tags:') and '"' in x):
                     tags = x.split('"')[1]
                     tags_private = 'res_extras_keywords_private:"' + tags + '"'
                     x= '(tags:"' + tags + '" OR ' + tags_private + ')'
-                    log.info(x)
                 elif(x.startswith('tags_en:') and '"' in x):
                     tags = x.split('"')[1]
                     tags_private = 'res_extras_keywords_private:"' + tags + '"'
                     x= '(tags_en:"' + tags + '" OR ' + tags_private + ')'
-                    log.info(x)
+                elif(x.startswith('tags_fr:') and '"' in x):
+                    tags = x.split('"')[1]
+                    tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                    x= '(tags_fr:"' + tags + '" OR ' + tags_private + ')'
                 final_query += x + ' '
-            log.info(final_query)
             search_params['fq'] = final_query.strip()
         log.info(search_params)
-            
         return search_params
 
 
@@ -419,8 +415,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         datasets = search_results['results']
 
         # Go through each of the datasets returned in the results
-        public_search_results = []
-        removal_count = 0
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
             log.info(pkg_dict['title'])
@@ -428,25 +422,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
-
-            # TODO Hide result if the search if a related dataset exists and is already being shown
-            # Should the public be the default or the private?
-            related_dataset = self.meta_authorize.get_public_dataset(dataset_id)
-
-            # For private: if user doesn't have access hide. For public: if user has access to private hide
-            if related_dataset:
-                template_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
-                if(template_access != "Full"):
-                    removal_count+= 1
-                    continue
-            else:
-                related_dataset = self.meta_authorize.get_private_dataset(dataset_id)
-                if(related_dataset):
-                    template_access = self.meta_authorize.get_template_access_for_user(related_dataset['id'], user_id)
-                    if(template_access == "Full"):
-                        removal_count+= 1
-                        continue
-            public_search_results.append(pkg_dict)
 
             # Load dataset fields
             dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
@@ -482,13 +457,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if(user_dataset_access != "Full"):
                 pkg_dict['resources'].append({"format" : "Restricted metadata"})
 
-            # Link to related dataset if one is available so it shows in harvest also add a tag for users to know
-            # TODO Edit the link to be flexible
-            ckan_dataset_address = "http://localhost:5000/dataset/"
-            if related_dataset:
-                pkg_dict['notes_translated']['en']+= "\n\n[Click here to access the private version of the dataset](" + ckan_dataset_address + related_dataset['id'] +")"
-                pkg_dict['resources'].append({"format" : "Paired dataset"})
-
             # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
@@ -502,8 +470,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
 
-        search_results['results'] = public_search_results
-        search_results['count']-= removal_count
         return search_results
 
     def after_create(self, context, pkg_dict):
