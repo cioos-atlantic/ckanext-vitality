@@ -377,27 +377,30 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         facet_query = search_params['fq']
         final_query = ""
 
-        if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
-            fq_split = facet_query.split(' ')
-            for x in fq_split:
-                if(x.startswith('eov:') and '"' in x):
-                    eov = x.split('"')[1]
-                    eov_private = 'res_extras_eov_private:"' + eov + '"'
-                    x= '(eov:"' + eov + '" OR ' + eov_private + ')'
-                elif(x.startswith('tags:') and '"' in x):
-                    tags = x.split('"')[1]
-                    tags_private = 'res_extras_keywords_private:"' + tags + '"'
-                    x= '(tags:"' + tags + '" OR ' + tags_private + ')'
-                elif(x.startswith('tags_en:') and '"' in x):
-                    tags = x.split('"')[1]
-                    tags_private = 'res_extras_keywords_private:"' + tags + '"'
-                    x= '(tags_en:"' + tags + '" OR ' + tags_private + ')'
-                elif(x.startswith('tags_fr:') and '"' in x):
-                    tags = x.split('"')[1]
-                    tags_private = 'res_extras_keywords_private:"' + tags + '"'
-                    x= '(tags_fr:"' + tags + '" OR ' + tags_private + ')'
-                final_query += x + ' '
-            search_params['fq'] = final_query.strip()
+        if 'restricted_search:"enabled"' in facet_query:
+            log.info("restricted search time")
+            facet_query = facet_query.replace('restricted_search:"enabled"', "")
+            if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
+                fq_split = facet_query.split(' ')
+                for x in fq_split:
+                    if(x.startswith('eov:') and '"' in x):
+                        eov = x.split('"')[1]
+                        eov_private = 'res_extras_eov_private:"' + eov + '"'
+                        x= '(eov:"' + eov + '" OR ' + eov_private + ')'
+                    elif(x.startswith('tags:') and '"' in x):
+                        tags = x.split('"')[1]
+                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                        x= '(tags:"' + tags + '" OR ' + tags_private + ')'
+                    elif(x.startswith('tags_en:') and '"' in x):
+                        tags = x.split('"')[1]
+                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                        x= '(tags_en:"' + tags + '" OR ' + tags_private + ')'
+                    elif(x.startswith('tags_fr:') and '"' in x):
+                        tags = x.split('"')[1]
+                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                        x= '(tags_fr:"' + tags + '" OR ' + tags_private + ')'
+                    final_query += x + ' '
+                search_params['fq'] = final_query.strip()
         log.info(search_params)
         return search_params
 
