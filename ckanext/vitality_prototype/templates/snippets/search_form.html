@@ -15,7 +15,7 @@
     <button class="btn btn-default js-hide" type="submit">{{ _('Go') }}</button>
     {% endblock %}
     <br></br>
-    <span class="dataset-heading"><a href="">Show entries with private records</a>.</span>
+    <span class="dataset-heading"><a href = {{h.add_url_param(new_params={'restricted_search':'enabled'})}}>Show entries with private records</a>.</span>
     </div>
 {% endif %}
 {% endblock %}
