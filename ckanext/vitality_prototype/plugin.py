@@ -251,9 +251,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     # Interfaces
     def dataset_facets(self, facets_dict, package_type):
-        facets_dict['eov_private'] = toolkit._('EOV - Private')
-        log.info(facets_dict)
-
         # For Python 3 upgrade: py3 lets you append to start of ordered dict
         return facets_dict
 
