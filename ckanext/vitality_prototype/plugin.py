@@ -285,10 +285,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
 
-        log.info("Now checking if this is beforeIndex")
-        log.info(context['package'].type)
+        log.info("HIT after show")
         if context['package'].type != 'dataset':
-            log.info("This pkg is not a dataset. Let it through unchanged.")
             return pkg_dict
 
         # Skip during indexing
@@ -304,9 +302,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
-
-        log.info(pkg_dict)
-
+        
         # Check to see if the dataset has just been created
         if(self.meta_authorize.get_dataset(dataset_id) == None):
             log.info("Dataset not in model yet. Returning")
@@ -370,12 +366,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def before_search(self, search_params):
         log.info("This is before the search")
-        log.info(search_params)
         facet_query = search_params['fq']
         final_query = ""
 
         if 'restricted_search:"enabled"' in facet_query:
-            log.info("restricted search time")
             facet_query = facet_query.replace('restricted_search:"enabled"', "")
             if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
                 fq_split = facet_query.split(' ')
@@ -398,7 +392,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                         x= '(tags_fr:"' + tags + '" OR ' + tags_private + ')'
                     final_query += x + ' '
                 search_params['fq'] = final_query.strip()
-        log.info(search_params)
         return search_params
 
 
@@ -417,7 +410,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
-            log.info(pkg_dict['title'])
 
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
@@ -509,8 +501,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     
         log.info("hit beforeindex")
 
-        log.info(pkg_dict['title'])
-
         if(pkg_dict['type'] != 'dataset'):
             log.info("This is not a dataset. Returning")
             return pkg_dict
@@ -521,7 +511,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
 
-        log.info("adding default templates")
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) == 0:
             if 'notes' in pkg_dict and pkg_dict['notes']:
@@ -563,9 +552,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 self.meta_authorize.set_template_access(str(role), full_id)
 
             #Add serves for organizations
-
-
-            
             
         return pkg_dict
 
