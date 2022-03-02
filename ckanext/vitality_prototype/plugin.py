@@ -319,16 +319,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'xml_location_url' not in pkg_dict:
                 pkg_dict['xml_location_url'] = ""
 
-        related_dataset_id = self.meta_authorize.get_public_dataset(dataset_id)
-        if related_dataset_id:
-            # Link to related dataset if one is available
-            pkg_dict['notes_translated']['en']= "##[Click here to access the public dataset:](http://localhost:5000/dataset/" + related_dataset_id['id'] +")\n\n" + pkg_dict['notes_translated']['en']
-        else:
-            related_dataset_id = self.meta_authorize.get_private_dataset(dataset_id)
-            if related_dataset_id:
-                # Link to related dataset if one is available
-                pkg_dict['notes_translated']['en']= "##[Click here to access the private dataset:](http://localhost:5000/dataset/" + related_dataset_id['id'] +")\n\n" + pkg_dict['notes_translated']['en']
-            
         return pkg_dict
 
     def before_search(self, search_params):
