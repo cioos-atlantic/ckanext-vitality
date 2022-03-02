@@ -15,7 +15,7 @@
     <button class="btn btn-default js-hide" type="submit">{{ _('Go') }}</button>
     {% endblock %}
     <br></br>
-    {% if facets.fields %}
+    {% if h.get_request_param('eov') or h.get_request_param('tags_en') or h.get_request_param('tags_fr')%}
         {% if h.get_request_param('restricted_search') %}
             <span class="dataset-heading"><a href = {{h.remove_url_param(key = 'restricted_search')}}>Hide entries with private records</a>.</span>
         {% else %}
