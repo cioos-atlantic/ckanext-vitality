@@ -15,10 +15,12 @@
     <button class="btn btn-default js-hide" type="submit">{{ _('Go') }}</button>
     {% endblock %}
     <br></br>
-    {% if h.get_request_param('restricted_search') %}
-        <span class="dataset-heading"><a href = {{h.remove_url_param(key = 'restricted_search')}}>Hide entries with private records</a>.</span>
-    {% else %}
-        <span class="dataset-heading"><a href = {{h.add_url_param(new_params={'restricted_search':'enabled'})}}>Show entries with private records</a>.</span>
+    {% if facets.fields %}
+        {% if h.get_request_param('restricted_search') %}
+            <span class="dataset-heading"><a href = {{h.remove_url_param(key = 'restricted_search')}}>Hide entries with private records</a>.</span>
+        {% else %}
+            <span class="dataset-heading"><a href = {{h.add_url_param(new_params={'restricted_search':'enabled'})}}>Show entries with private records</a>.</span>
+        {% endif %}
     {% endif %}
     </div>
 {% endif %}
