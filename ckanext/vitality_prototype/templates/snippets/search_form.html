@@ -1,0 +1,53 @@
+{% ckan_extends %}
+
+{% block search_sortby %}
+{% if sorting %}
+    <div class="form-select form-group control-order-by">
+    <label for="field-order-by">{{ _('Order by') }}</label>
+    <select id="field-order-by" name="sort" class="form-control">
+        {% for label, value in sorting %}
+        {% if label and value %}
+            <option value="{{ value }}"{% if sorting_selected == value %} selected="selected"{% endif %}>{{ label }}</option>
+        {% endif %}
+        {% endfor %}
+    </select>
+    {% block search_sortby_button %}
+    <button class="btn btn-default js-hide" type="submit">{{ _('Go') }}</button>
+    {% endblock %}
+    <br></br>
+    {% if h.get_request_param('eov') or h.get_request_param('tags_en') or h.get_request_param('tags_fr')%}
+        {% if h.get_request_param('restricted_search') %}
+            <span class="dataset-heading"><a href = {{h.remove_url_param(key = 'restricted_search')}}>Hide entries with private records</a>.</span>
+        {% else %}
+            <span class="dataset-heading"><a href = {{h.add_url_param(new_params={'restricted_search':'enabled'})}}>Show entries with private records</a>.</span>
+        {% endif %}
+    {% endif %}
+    </div>
+{% endif %}
+{% endblock %}
+
+ {% block search_facets %}
+    {% if facets %}
+      <p class="filter-list">
+        {% for field in facets.fields %}
+          {% set search_facets_items = facets.search.get(field)['items'] %}
+          {% if field == 'restricted_search' %}
+            <span class="facet">Restricted Search:</span>
+          {% else %}
+            <span class="facet">{{ facets.titles.get(field) }}:</span>
+          {% endif %}  
+          {% for value in facets.fields[field] %}
+            <span class="filtered pill">
+              {%- if facets.translated_fields and facets.translated_fields.has_key((field,value)) -%}
+                {{ facets.translated_fields[(field,value)] }}
+              {%- else -%}
+                {{ h.list_dict_filter(search_facets_items, 'name', 'display_name', value) }}
+              {%- endif %}
+              <a href="{{ facets.remove_field(field, value) }}" class="remove" title="{{ _('Remove') }}"><i class="fa fa-times"></i></a>
+            </span>
+          {% endfor %}
+        {% endfor %}
+      </p>
+      <a class="show-filters btn btn-default">{{ _('Filter Results') }}</a>
+    {% endif %}
+  {% endblock %}

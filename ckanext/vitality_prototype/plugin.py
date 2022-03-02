@@ -1,4 +1,6 @@
+from json import tool
 import logging
+from re import search
 import uuid
 import copy
 import constants
@@ -13,10 +15,9 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 import ckan.plugins.interfaces as interfaces
 from ckan.common import config
-
+#TODO add variable for address
 
 log = logging.getLogger(__name__)
-
 
 class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     """ 
@@ -35,9 +36,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     """
     plugins.implements(plugins.IConfigurer)
+    plugins.implements(plugins.IFacets)
     plugins.implements(plugins.IPackageController, inherit=True)
     plugins.implements(plugins.ITemplateHelpers)
-    plugins.implements(plugins.IOrganizationController, inherit=True)
+    plugins.implements(plugins.IActions, inherit=True)
+    plugins.implements(plugins.IDatasetForm)
 
     # Authorization Interface
     meta_authorize = None
@@ -47,6 +50,179 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return {
             'vitality_prototype_get_minimum_fields': lambda: constants.MINIMUM_FIELDS
         }
+
+    
+    def get_actions(self):
+        return {
+            "organization_update" : self.organization_update,
+            "organization_create" : self.organization_create,
+            "organization_delete" : self.organization_delete,
+            "organization_member_create" : self.organization_member_create,
+            "organization_member_delete" : self.organization_member_delete,
+            "user_update" : self.user_update,
+            "user_create" : self.user_create,
+            "user_delete" : self.user_delete,
+            "package_update" : self.package_update,
+            "package_create" : self.package_create,
+            "package_delete" : self.package_delete
+        }
+
+    @toolkit.chained_action
+    def organization_member_create(self, action, context, data_dict=None):
+        log.info("A member has been added!")
+        org_id= data_dict['id']
+        user_id = self.meta_authorize.get_user_by_username(data_dict['username'])['id']
+        # Get roles for org
+        org_roles = self.meta_authorize.get_roles(org_id)
+        log.info(org_roles)
+        log.info(org_roles['member'])
+        self.meta_authorize.set_user_role(user_id, org_roles['member'])
+        # Add user to member role for organization
+        return action(context,data_dict)
+
+    @toolkit.chained_action
+    def organization_member_delete(self, action, context, data_dict=None):
+        log.info("A member has been deleted")
+        org_id= data_dict['id']
+        user_id = data_dict['user_id']
+        log.info("Collected ids")
+        log.info(org_id)
+        log.info(user_id)
+        role_id = self.meta_authorize.get_roles(org_id)['member']
+        self.meta_authorize.detach_user_role(user_id, role_id)
+        return action(context,data_dict)
+
+    # Triggers when a user's information is updated (name/email)
+    @toolkit.chained_action
+    def user_update(self, action, context, data_dict=None):
+        log.info("An user has been edited")
+        ckan_user_info = toolkit.get_action('user_show')(context,data_dict)
+        neo4j_user_info = self.meta_authorize.get_user(ckan_user_info['id'])
+        # Unsure if username can be changed, but this can work around it if so
+        if(data_dict['name'] != neo4j_user_info['username']):
+            log.info("Username has been updated")
+            self.meta_authorize.set_user_username(ckan_user_info['id'], data_dict['name'])
+        if(data_dict['email'] != neo4j_user_info['email']):
+            log.info("Email has been updated")
+            self.meta_authorize.set_user_email(ckan_user_info['id'], data_dict['email'])
+        return action(context, data_dict)
+
+    @toolkit.chained_action
+    def user_create(self, action, context, data_dict=None):
+        result = action(context, data_dict)
+        log.info("A user has been created")
+        user_id = result['id']
+        user_name = result['name']
+        user_email = result['email']
+        self.meta_authorize.add_user(user_id, user_name, user_email)
+        if(result['sysadmin']):
+            log.info('add to admin role')
+            self.meta_authorize.set_user_role(user_id, 'admin')
+        return result
+
+    @toolkit.chained_action
+    def user_delete(self, action, context, data_dict=None):
+        log.info("An user has been deleted")
+        user_id = data_dict['id']
+        self.meta_authorize.delete_user(user_id)
+        return action(context, data_dict)
+
+    # Triggers when an org's information is updated (name)
+    @toolkit.chained_action
+    def organization_update(self, action, context, data_dict=None):
+        log.info("An organization has been edited")
+        ckan_org_info = toolkit.get_action('organization_show')(context, data_dict)
+        ckan_org_id= ckan_org_info['id']
+        ckan_org_name = data_dict['name']
+        neo4j_org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
+        if(neo4j_org_name != ckan_org_name):
+            log.info("Org name has been updated")
+            self.meta_authorize.set_organization_name(ckan_org_id, ckan_org_name)
+            org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
+        return action(context, data_dict)      
+
+    @toolkit.chained_action
+    def organization_create(self, action, context, data_dict=None):
+        log.info("An organization has been created")
+        result = action(context, data_dict)
+        org_name = data_dict['title_translated-en']
+        org_id = result['id']
+        user_list = []
+        for user in data_dict['users']:
+            # TODO If user is an admin for the organization, give them admin form access too
+            user_id = self.meta_authorize.get_user_by_username(user['name'])['id']
+            user_list.append({'id':user_id})
+        self.meta_authorize.add_org(org_id, user_list, org_name)
+        admin_list = self.meta_authorize.get_admins()
+        for admin in admin_list:
+                self.meta_authorize.set_admin_form_access(admin, org_id)
+        return result
+
+    @toolkit.chained_action
+    def organization_delete(self, action, context, data_dict=None):
+        log.info("An organization has been deleted")
+        organization_id = data_dict['id']
+        result = action(context, data_dict)
+        self.meta_authorize.delete_organization(organization_id)
+        return result
+
+    @toolkit.chained_action
+    def package_update(self, action, context, data_dict=None):
+        log.info("A package has been updated")
+        result = action(context, data_dict)
+        if(result['type'] != 'dataset'):
+            log.info("Updated package not a dataset")
+            return result
+        try:
+            dataset_id = result['id']
+            dataset_name = result['title_translated']['en']
+            dataset_description_en = result['notes_translated']['en']
+            dataset_description_fr = result['notes_translated']['fr']
+            self.meta_authorize.set_dataset_name(dataset_id, dataset_name)
+            self.meta_authorize.set_dataset_description(dataset_id, 'en', dataset_description_en)
+            self.meta_authorize.set_dataset_description(dataset_id, 'fr', dataset_description_fr)
+        except:
+            log.info("Something went wrong with the package update.")
+            log.info(result)
+        # Only needs to track description?
+        return result
+
+    @toolkit.chained_action
+    def package_delete(action, context, data_dict=None):
+        log.info("An package has been deleted")
+        # Only needs to track description?
+        # Delete all the templates and attributes associated too
+        result = action(context, data_dict)
+        return result
+
+    # Temp method while above issue is resolved
+    @toolkit.chained_action
+    def package_create(self, action, context, data_dict=None):
+        return action(context, data_dict)
+
+    """
+    Required by CKAN for the schema changes to function
+    """
+    def is_fallback(self):
+        # Return True to register this plugin as the default handler for
+        # package types not handled by any other IDatasetForm plugin.
+        return False
+
+    """
+    Required by CKAN for the schema changes to function
+    """
+    def package_types(self):
+        # This plugin doesn't handle any special package types, it just
+        # registers itself as the default (above).
+        return []
+
+    # Interfaces
+    def dataset_facets(self, facets_dict, package_type):
+        # For Python 3 upgrade: py3 lets you append to start of ordered dict
+        return facets_dict
+
+    def organization_facets(self, facets_dict, organization_type, package_type, ):
+        return facets_dict
 
     # IConfigurer
 
@@ -75,13 +251,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
-        log.info("Context")
-        log.info(context)
 
-        log.info("Now checking if this is beforeIndex")
-        log.info(context['package'].type)
+        log.info("HIT after show")
         if context['package'].type != 'dataset':
-            log.info("This pkg is not a dataset. Let it through unchanged.")
             return pkg_dict
 
         # Skip during indexing
@@ -89,17 +261,15 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info("This is before index we're done here.")
             return pkg_dict
 
-
         log.info("This is not before index, filtering")
-        log.info("Initial pkg_dict:")
-        log.info(pkg_dict)
 
         # Description
-        notes = pkg_dict['notes'].encode("UTF-8")
+        if 'notes' in pkg_dict and pkg_dict['notes']:
+            notes = pkg_dict['notes'].encode("UTF-8")
 
         # Decode unicode id...
         dataset_id = pkg_dict["id"].encode("utf-8")
-
+        
         # Check to see if the dataset has just been created
         if(self.meta_authorize.get_dataset(dataset_id) == None):
             log.info("Dataset not in model yet. Returning")
@@ -113,19 +283,20 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             user = context['auth_user_obj']
             user_id = user.id
 
-        # Load dataset fields
-        dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
         
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
 
-        #TODO check for keys matching
+        # Load dataset fields
+        dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
+        # Extra keys are checked here
         extra_keys = self.meta_authorize.keys_match(pkg_dict, dataset_fields)
         if extra_keys != set():
-            log.info("Extra keys found!")
+            log.info("Extra keys found in after show! Warning!")
             log.info(extra_keys)
-            self.meta_authorize.add_metadata_fields(dataset_id, extra_keys)
+            templates = self.meta_authorize.get_templates(dataset_id)
+            self.meta_authorize.add_metadata_fields(dataset_id, extra_keys, templates['Full'])
             #TODO Call and implement add metadata fields
 
         # Filter metadata fields
@@ -144,37 +315,59 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'resources' not in pkg_dict:
             pkg_dict['resources'] = []
 
-        log.info("Final pkg_dict:")
-        log.info(pkg_dict)
+        # Inject empty xml link if it has been filtered
+        if 'xml_location_url' not in pkg_dict:
+                pkg_dict['xml_location_url'] = ""
+
         return pkg_dict
+
+    def before_search(self, search_params):
+        log.info("This is before the search")
+        facet_query = search_params['fq']
+        final_query = ""
+
+        if 'restricted_search:"enabled"' in facet_query:
+            facet_query = facet_query.replace('restricted_search:"enabled"', "")
+            if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
+                fq_split = facet_query.split(' ')
+                for x in fq_split:
+                    if(x.startswith('eov:') and '"' in x):
+                        eov = x.split('"')[1]
+                        eov_private = 'res_extras_eov_private:"' + eov + '"'
+                        x= '(eov:"' + eov + '" OR ' + eov_private + ')'
+                    elif(x.startswith('tags:') and '"' in x):
+                        tags = x.split('"')[1]
+                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                        x= '(tags:"' + tags + '" OR ' + tags_private + ')'
+                    elif(x.startswith('tags_en:') and '"' in x):
+                        tags = x.split('"')[1]
+                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                        x= '(tags_en:"' + tags + '" OR ' + tags_private + ')'
+                    elif(x.startswith('tags_fr:') and '"' in x):
+                        tags = x.split('"')[1]
+                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
+                        x= '(tags_fr:"' + tags + '" OR ' + tags_private + ')'
+                    final_query += x + ' '
+                search_params['fq'] = final_query.strip()
+        return search_params
+
 
     def after_search(self, search_results, search_params):
 
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
-            log.info('Public user')
             user_id = 'public'   
         else:
             user = toolkit.c.userobj
             user_id = user.id
-            log.info(user)
-            log.info('Request from ' + user_id)
-
-        # Gets the number of results matching the search parameters (total)
-        log.info('# of total results ' + str(search_results['count']))
 
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
-        result_count = len(datasets)
-        log.info('Number of results loaded' + str(result_count))        
-        
-        # Gets the total number of results matching the search parameters
-        log.info('Number of results ' + str(len(search_results)))
 
         # Go through each of the datasets returned in the results
-        log.info('Parsing search data')
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
+
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
@@ -188,7 +381,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # If no relation exists between user and dataset, treat as public
             if len(visible_fields) == 0:
                 visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
-                log.info('Public visible fields  ' + str(visible_fields))
 
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
@@ -223,7 +415,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-            
+
         return search_results
 
     def after_create(self, context, pkg_dict):
@@ -231,11 +423,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_update(self, context, pkg_dict):
+        
         log.info("HIT after update")
-        log.info(context)
-
-        log.info("Updated pkg_dict")
-        log.info(pkg_dict)
 
         # Only update public visibility settings if the field exists in pkg_dict
         if 'public-visibility' not in pkg_dict:
@@ -263,8 +452,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_index(self, pkg_dict):
+    
+        log.info("hit beforeindex")
 
-        log.info("hit before_index")
+        if(pkg_dict['type'] != 'dataset'):
+            log.info("This is not a dataset. Returning")
+            return pkg_dict
 
         dataset_id = pkg_dict["id"].encode("utf-8")
 
@@ -272,11 +465,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
 
-        log.info("adding default templates")
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) == 0:
             if 'notes' in pkg_dict and pkg_dict['notes']:
-                log.info(type(pkg_dict['notes']))
                 try:
                     dataset_notes = json.loads(pkg_dict['notes'].encode('utf-8'))
                     self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
@@ -296,15 +487,14 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # Adds the full and minimal template
             self.meta_authorize.add_template_full(dataset_id, full_id, full_name, generate_default_fields(), full_description)
             self.meta_authorize.add_template(dataset_id, minimal_id, minimal_name, minimal_description)
+
             self.meta_authorize.set_visible_fields(
                 minimal_id,
                 generate_whitelist(
                     default_public_fields(self.meta_authorize.get_metadata_fields(dataset_id))
                 )
             )
-            
-            log.info("type of metadata_fields: " + str(type(self.meta_authorize.get_metadata_fields(dataset_id))))
-
+        
             # Always add access for public and admin roles
             # TODO Discuss change default for public?
             self.meta_authorize.set_template_access('public', minimal_id)
@@ -316,7 +506,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 self.meta_authorize.set_template_access(str(role), full_id)
 
             #Add serves for organizations
-            
             
         return pkg_dict
 
@@ -352,8 +541,6 @@ def print_expanded(pkg_dict, key_name=None, depth=None):
         log.error("Error expanding pkg_dict. last_key:" + last_key)
         log.error(type(ex))
         log.error(str(ex))
-
-
 
 def compute_tabs(num):
     """ Returns a string with `num` tabs
