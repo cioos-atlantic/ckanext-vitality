@@ -200,45 +200,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def package_create(self, action, context, data_dict=None):
         return action(context, data_dict)
 
-    def create_package_schema(self):
-        schema = super(Vitality_PrototypePlugin, self).create_package_schema()
-        schema.update({
-            'eov_private': [toolkit.get_validator('ignore_missing'),
-                            toolkit.get_converter('convert_to_extras')
-            ]
-        })
-        return schema
-
-    def _modify_package_schema(self, schema):
-        schema.update({
-            'eov_private': [toolkit.get_validator('ignore_missing'),
-                            toolkit.get_converter('convert_to_extras')]
-        })
-        schema.update({
-            'keywords_private': [toolkit.get_validator('ignore_missing'),
-                            toolkit.get_converter('convert_to_tags')]
-        })
-        log.info("Modify package schema happened")
-        return schema
-
-    def update_package_schema(self):
-        schema = super(Vitality_PrototypePlugin, self).update_package_schema()
-        schema = self._modify_package_schema(schema)
-        return schema
-
-    def show_package_schema(self):
-        log.info("Show package schema happened")
-        schema = super(Vitality_PrototypePlugin, self).show_package_schema()
-        schema.update({
-            'eov_private': [toolkit.get_converter('convert_from_extras'), 
-                            toolkit.get_validator('ignore_missing')]
-        })
-        schema.update({
-            'keywords': [toolkit.get_converter('convert_from_tags'), 
-                            toolkit.get_validator('ignore_missing')]
-        })
-        return schema
-
     def is_fallback(self):
         # Return True to register this plugin as the default handler for
         # package types not handled by any other IDatasetForm plugin.
