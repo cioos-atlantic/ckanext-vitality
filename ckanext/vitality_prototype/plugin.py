@@ -200,11 +200,17 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def package_create(self, action, context, data_dict=None):
         return action(context, data_dict)
 
+    """
+    Required by CKAN for the schema changes to function
+    """
     def is_fallback(self):
         # Return True to register this plugin as the default handler for
         # package types not handled by any other IDatasetForm plugin.
         return False
 
+    """
+    Required by CKAN for the schema changes to function
+    """
     def package_types(self):
         # This plugin doesn't handle any special package types, it just
         # registers itself as the default (above).
