@@ -509,8 +509,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             
         return pkg_dict
 
-    def edit(self):
-        log.info("Org has been updated")
 '''
 Utility for printing pkg_dict structure
 '''
