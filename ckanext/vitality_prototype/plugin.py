@@ -354,6 +354,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def after_search(self, search_results, search_params):
 
+        log.info('Hit after search')
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
             user_id = 'public'   
@@ -364,10 +365,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
 
+        log.info('Going through datasets')
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
 
+            log.info('Managing %s', pkg_dict['title'])
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
             dataset_id = pkg_dict["id"].encode("utf-8")
@@ -416,6 +419,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
 
+        log.info('Returning search results')
         return search_results
 
     def after_create(self, context, pkg_dict):
