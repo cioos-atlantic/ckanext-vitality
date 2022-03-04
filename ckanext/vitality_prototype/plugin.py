@@ -349,6 +349,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                         x= '(tags_fr:"' + tags + '" OR ' + tags_private + ')'
                     final_query += x + ' '
                 search_params['fq'] = final_query.strip()
+            else:
+                search_params['fq'] = final_query.strip()    
         return search_params
 
 
