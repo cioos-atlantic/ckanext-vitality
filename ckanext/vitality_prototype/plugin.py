@@ -69,7 +69,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def organization_member_create(self, action, context, data_dict=None):
-        log.info("A member has been added!")
+        log.info("A member has been added by %s", context['auth_user_obj'].name)
         org_id= data_dict['id']
         user_id = self.meta_authorize.get_user_by_username(data_dict['username'])['id']
         # Get roles for org
@@ -82,7 +82,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def organization_member_delete(self, action, context, data_dict=None):
-        log.info("A member has been deleted")
+        log.info("A member has been deleted by %s", context['auth_user_obj'].name)
         org_id= data_dict['id']
         user_id = data_dict['user_id']
         log.info("Collected ids")
@@ -95,7 +95,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # Triggers when a user's information is updated (name/email)
     @toolkit.chained_action
     def user_update(self, action, context, data_dict=None):
-        log.info("An user has been edited")
+        log.info("An user has been edited by %s", context['auth_user_obj'].name)
         ckan_user_info = toolkit.get_action('user_show')(context,data_dict)
         neo4j_user_info = self.meta_authorize.get_user(ckan_user_info['id'])
         # Unsure if username can be changed, but this can work around it if so
@@ -110,7 +110,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     @toolkit.chained_action
     def user_create(self, action, context, data_dict=None):
         result = action(context, data_dict)
-        log.info("A user has been created")
+        log.info("A user has been created by %s", context['auth_user_obj'].name)
         user_id = result['id']
         user_name = result['name']
         user_email = result['email']
@@ -122,7 +122,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def user_delete(self, action, context, data_dict=None):
-        log.info("An user has been deleted")
+        log.info("An user has been deleted by %s", context['auth_user_obj'].name)
         user_id = data_dict['id']
         self.meta_authorize.delete_user(user_id)
         return action(context, data_dict)
@@ -130,20 +130,19 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # Triggers when an org's information is updated (name)
     @toolkit.chained_action
     def organization_update(self, action, context, data_dict=None):
-        log.info("An organization has been edited")
+        log.info("An organization has been edited by %s", context['auth_user_obj'].name)
         ckan_org_info = toolkit.get_action('organization_show')(context, data_dict)
         ckan_org_id= ckan_org_info['id']
         ckan_org_name = data_dict['name']
         neo4j_org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
         if(neo4j_org_name != ckan_org_name):
-            log.info("Org name has been updated")
             self.meta_authorize.set_organization_name(ckan_org_id, ckan_org_name)
             org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
         return action(context, data_dict)      
 
     @toolkit.chained_action
     def organization_create(self, action, context, data_dict=None):
-        log.info("An organization has been created")
+        log.info("An organization has been created by %s", context['auth_user_obj'].name)
         result = action(context, data_dict)
         org_name = data_dict['title_translated-en']
         org_id = result['id']
@@ -160,7 +159,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def organization_delete(self, action, context, data_dict=None):
-        log.info("An organization has been deleted")
+        log.info("An organization has been deleted by %s", context['auth_user_obj'].name)
         organization_id = data_dict['id']
         result = action(context, data_dict)
         self.meta_authorize.delete_organization(organization_id)
@@ -168,7 +167,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def package_update(self, action, context, data_dict=None):
-        log.info("A package has been updated")
+        log.info("A package has been updated by %s", context['auth_user_obj'].name)
         result = action(context, data_dict)
         if(result['type'] != 'dataset'):
             log.info("Updated package not a dataset")
@@ -189,7 +188,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def package_delete(action, context, data_dict=None):
-        log.info("An package has been deleted")
+        log.info("An package has been deleted by %s", context['auth_user_obj'].name)
         # Only needs to track description?
         # Delete all the templates and attributes associated too
         result = action(context, data_dict)
