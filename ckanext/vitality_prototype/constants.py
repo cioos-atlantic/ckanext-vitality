@@ -127,7 +127,8 @@ PUBLIC_FIELDS = [
     "progress",
     "resource_type",
     "dataset-reference-date",
-    "metadata-reference-date" 
+    "metadata-reference-date",
+    "owner_org" 
 ]
 
 # Template / harvest issues will occur if these fields don't exist
@@ -154,7 +155,8 @@ MINIMUM_FIELDS = [
     "notes_translated/en",
     "notes_translated/fr",
     "progress",
-    "resource_type"
+    "resource_type",
+    "owner_org"
 
 ]
 

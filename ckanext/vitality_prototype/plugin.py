@@ -383,6 +383,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
+            log.info(filtered['type'])
 
             # Replace pkg_dict with filtered
             pkg_dict.clear()
@@ -415,6 +416,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
 
+            log.info(pkg_dict['type'])
+
+        log.info('returning results')
         return search_results
 
     def after_create(self, context, pkg_dict):
