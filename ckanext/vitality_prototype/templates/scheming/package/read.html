@@ -14,6 +14,12 @@
         {{ h.render_markdown(h.get_translated(pkg, 'notes')) }}
     </div>
     {% endif %}
+    {% if pkg.res_extras_keywords_private %}
+        <p>
+            <h3>This dataset contains restricted information</h3>
+            You can contact the dataset owner to request access
+        </p>
+    {% endif %}
 
 {% endblock %}
 
