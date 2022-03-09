@@ -12,7 +12,7 @@
                   <i class="fa fa-lock"></i>
                   {{ _('Private') }}
                 </span>
-              {% elif package.res_extras_keywords_private or package.res_extras_eov_private %}
+              {% elif package.mark_restricted %}
                 <span class="dataset-restricted label label-inverse">
                   <i class="fa fa-lock"></i>
                   {{ _('Restricted') }}

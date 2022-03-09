@@ -322,13 +322,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     def before_search(self, search_params):
         log.info("This is before the search")
+        
         facet_query = search_params['fq']
-        final_query = ""
-
         if 'restricted_search:"enabled"' in facet_query:
             facet_query = facet_query.replace('restricted_search:"enabled"', "")
             if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
                 fq_split = facet_query.split(' ')
+                final_query = ""
                 for x in fq_split:
                     if(x.startswith('eov:') and '"' in x):
                         eov = x.split('"')[1]
@@ -349,11 +349,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                     final_query += x + ' '
                 search_params['fq'] = final_query.strip()
             else:
-                search_params['fq'] = final_query.strip()    
+                search_params['fq'] = facet_query.strip()    
         return search_params
 
 
     def after_search(self, search_results, search_params):
+
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
             user_id = 'public'   
@@ -363,7 +364,26 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
+        
+        # Checks if the search requires restricted variable checking
+        # TODO Overall very costly algorithm - find a better alternative through SOLR itself?
 
+        
+
+        log.info(search_params['fq'][0])
+        restricted_search_enabled = False
+        restricted_search_eovs = []
+        restricted_search_keywords = []
+        for x in search_params['fq'][0].replace(")","").replace("(", "").split(" "):
+            if(x.startswith('res_extras_eov_private')):
+                restricted_search_eovs.append(x.split('"')[1])
+                restricted_search_enabled = True
+            elif(x.startswith('res_extras_keywords_private')):
+                restricted_search_keywords.append(x.split('"')[1])
+                restricted_search_enabled = True
+
+        log.info(restricted_search_eovs)
+        log.info(restricted_search_keywords)
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
@@ -384,7 +404,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
-            log.info(filtered['type'])
 
             # Replace pkg_dict with filtered
             pkg_dict.clear()
@@ -400,7 +419,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # If the metadata is restricted in any way will add a "resource" so a tag can be generated
             # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
-            pkg_dict['resources'].append({"format" : "Restricted data"})
+            pkg_dict['resources'].append({"format" : "VITALITY"})
 
             # If current user does not have full access to the metadata, tag the dataset as such
             user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
@@ -417,7 +436,24 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
 
-            log.info(pkg_dict['type'])
+            if restricted_search_enabled:
+                try:
+                    if('res_extras_eov_private' in pkg_dict):
+                        for x in restricted_search_eovs:
+                            if x in pkg_dict['res_extras_eov_private']:
+                                pkg_dict['mark_restricted'] = True
+                                continue
+                    if('res_extras_keywords_private' in pkg_dict and 'mark_restricted' not in pkg_dict):
+                        log.info(pkg_dict['res_extras_keywords_private'])
+                        for x in restricted_search_keywords:
+                            if x in pkg_dict['res_extras_keywords_private']['en'] or x in pkg_dict['res_extras_keywords_private']['fr']:
+                                pkg_dict['mark_restricted'] = True
+                                continue
+                except:
+                    log.info('An error with restricted search occurred')
+                if('mark_restricted' in pkg_dict):
+                    log.info("Mark this as restricted")
+                log.info('hopefully skipped')
 
         log.info('returning results')
         return search_results
