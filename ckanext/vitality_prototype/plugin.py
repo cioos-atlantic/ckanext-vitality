@@ -69,7 +69,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def organization_member_create(self, action, context, data_dict=None):
-        log.info("A member has been added!")
+        log.info("A member has been added by %s", context['auth_user_obj'].name)
         org_id= data_dict['id']
         user_id = self.meta_authorize.get_user_by_username(data_dict['username'])['id']
         # Get roles for org
@@ -82,7 +82,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def organization_member_delete(self, action, context, data_dict=None):
-        log.info("A member has been deleted")
+        log.info("A member has been deleted by %s", context['auth_user_obj'].name)
         org_id= data_dict['id']
         user_id = data_dict['user_id']
         log.info("Collected ids")
@@ -95,7 +95,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # Triggers when a user's information is updated (name/email)
     @toolkit.chained_action
     def user_update(self, action, context, data_dict=None):
-        log.info("An user has been edited")
+        log.info("An user has been edited by %s", context['auth_user_obj'].name)
         ckan_user_info = toolkit.get_action('user_show')(context,data_dict)
         neo4j_user_info = self.meta_authorize.get_user(ckan_user_info['id'])
         # Unsure if username can be changed, but this can work around it if so
@@ -110,7 +110,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     @toolkit.chained_action
     def user_create(self, action, context, data_dict=None):
         result = action(context, data_dict)
-        log.info("A user has been created")
+        log.info("A user has been created by %s", context['auth_user_obj'].name)
         user_id = result['id']
         user_name = result['name']
         user_email = result['email']
@@ -122,7 +122,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def user_delete(self, action, context, data_dict=None):
-        log.info("An user has been deleted")
+        log.info("An user has been deleted by %s", context['auth_user_obj'].name)
         user_id = data_dict['id']
         self.meta_authorize.delete_user(user_id)
         return action(context, data_dict)
@@ -130,20 +130,19 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # Triggers when an org's information is updated (name)
     @toolkit.chained_action
     def organization_update(self, action, context, data_dict=None):
-        log.info("An organization has been edited")
+        log.info("An organization has been edited by %s", context['auth_user_obj'].name)
         ckan_org_info = toolkit.get_action('organization_show')(context, data_dict)
         ckan_org_id= ckan_org_info['id']
         ckan_org_name = data_dict['name']
         neo4j_org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
         if(neo4j_org_name != ckan_org_name):
-            log.info("Org name has been updated")
             self.meta_authorize.set_organization_name(ckan_org_id, ckan_org_name)
             org_name = self.meta_authorize.get_organization(ckan_org_id)['name']
         return action(context, data_dict)      
 
     @toolkit.chained_action
     def organization_create(self, action, context, data_dict=None):
-        log.info("An organization has been created")
+        log.info("An organization has been created by %s", context['auth_user_obj'].name)
         result = action(context, data_dict)
         org_name = data_dict['title_translated-en']
         org_id = result['id']
@@ -160,7 +159,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def organization_delete(self, action, context, data_dict=None):
-        log.info("An organization has been deleted")
+        log.info("An organization has been deleted by %s", context['auth_user_obj'].name)
         organization_id = data_dict['id']
         result = action(context, data_dict)
         self.meta_authorize.delete_organization(organization_id)
@@ -168,7 +167,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def package_update(self, action, context, data_dict=None):
-        log.info("A package has been updated")
+        log.info("A package has been updated by %s", context['auth_user_obj'].name)
         result = action(context, data_dict)
         if(result['type'] != 'dataset'):
             log.info("Updated package not a dataset")
@@ -189,7 +188,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def package_delete(action, context, data_dict=None):
-        log.info("An package has been deleted")
+        log.info("An package has been deleted by %s", context['auth_user_obj'].name)
         # Only needs to track description?
         # Delete all the templates and attributes associated too
         result = action(context, data_dict)
@@ -251,8 +250,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
-
-        log.info("HIT after show")
         if context['package'].type != 'dataset':
             return pkg_dict
 
@@ -287,7 +284,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
-
+        log.info(pkg_dict['extras'])
         # Load dataset fields
         dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
         # Extra keys are checked here
@@ -322,37 +319,39 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_search(self, search_params):
-        log.info("This is before the search")
         facet_query = search_params['fq']
-        final_query = ""
-
         if 'restricted_search:"enabled"' in facet_query:
             facet_query = facet_query.replace('restricted_search:"enabled"', "")
             if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
                 fq_split = facet_query.split(' ')
+                final_query = ""
                 for x in fq_split:
                     if(x.startswith('eov:') and '"' in x):
                         eov = x.split('"')[1]
-                        eov_private = 'res_extras_eov_private:"' + eov + '"'
-                        x= '(eov:"' + eov + '" OR ' + eov_private + ')'
+                        eov_restricted = 'res_extras_eov_restricted:"' + eov + '"'
+                        x= '(eov:"' + eov + '" OR ' + eov_restricted + ')'
                     elif(x.startswith('tags:') and '"' in x):
                         tags = x.split('"')[1]
-                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
-                        x= '(tags:"' + tags + '" OR ' + tags_private + ')'
+                        tags_restricted = 'res_extras_keywords_restricted:"' + tags + '"'
+                        x= '(tags:"' + tags + '" OR ' + tags_restricted + ')'
                     elif(x.startswith('tags_en:') and '"' in x):
                         tags = x.split('"')[1]
-                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
-                        x= '(tags_en:"' + tags + '" OR ' + tags_private + ')'
+                        tags_restricted = 'res_extras_keywords_restricted:"' + tags + '"'
+                        x= '(tags_en:"' + tags + '" OR ' + tags_restricted + ')'
                     elif(x.startswith('tags_fr:') and '"' in x):
                         tags = x.split('"')[1]
-                        tags_private = 'res_extras_keywords_private:"' + tags + '"'
-                        x= '(tags_fr:"' + tags + '" OR ' + tags_private + ')'
+                        tags_restricted = 'res_extras_keywords_restricted:"' + tags + '"'
+                        x= '(tags_fr:"' + tags + '" OR ' + tags_restricted + ')'
                     final_query += x + ' '
                 search_params['fq'] = final_query.strip()
+            else:
+                search_params['fq'] = facet_query.strip()   
+
         return search_params
 
 
     def after_search(self, search_results, search_params):
+
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         if toolkit.c.userobj == None:
             user_id = 'public'   
@@ -362,6 +361,19 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
+        
+        # Checks if the search requires restricted variable checking
+        # TODO Overall costly - find a better alternative
+        restricted_search_enabled = False
+        restricted_search_eovs = []
+        restricted_search_keywords = []
+        for x in search_params['fq'][0].replace(")","").replace("(", "").split(" "):
+            if(x.startswith('res_extras_eov_restricted')):
+                restricted_search_eovs.append(x.split('"')[1])
+                restricted_search_enabled = True
+            elif(x.startswith('res_extras_keywords_restricted')):
+                restricted_search_keywords.append(x.split('"')[1])
+                restricted_search_enabled = True
 
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
@@ -383,7 +395,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
-            log.info(filtered['type'])
 
             # Replace pkg_dict with filtered
             pkg_dict.clear()
@@ -399,7 +410,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # If the metadata is restricted in any way will add a "resource" so a tag can be generated
             # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
-            pkg_dict['resources'].append({"format" : "Restricted data"})
+            pkg_dict['resources'].append({"format" : "VITALITY"})
 
             # If current user does not have full access to the metadata, tag the dataset as such
             user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
@@ -416,9 +427,21 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
 
-            log.info(pkg_dict['type'])
-
-        log.info('returning results')
+            if restricted_search_enabled:
+                try:
+                    if('res_extras_eov_restricted' in pkg_dict):
+                        for x in restricted_search_eovs:
+                            if x in pkg_dict['res_extras_eov_restricted']:
+                                pkg_dict['mark_restricted'] = True
+                                continue
+                    if('res_extras_keywords_restricted' in pkg_dict and 'mark_restricted' not in pkg_dict):
+                        log.info(pkg_dict['res_extras_keywords_restricted'])
+                        for x in restricted_search_keywords:
+                            if x in pkg_dict['res_extras_keywords_restricted']['en'] or x in pkg_dict['res_extras_keywords_restricted']['fr']:
+                                pkg_dict['mark_restricted'] = True
+                                continue
+                except:
+                    log.info('An error with restricted search occurred')
         return search_results
 
     def after_create(self, context, pkg_dict):
@@ -504,7 +527,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             self.meta_authorize.set_template_access('admin', full_id)
 
             # Add access for any roles in the organization
-            log.info(self.meta_authorize.get_roles(pkg_dict['owner_org']))
             for role in self.meta_authorize.get_roles(pkg_dict['owner_org']).values():
                 self.meta_authorize.set_template_access(str(role), full_id)
 
