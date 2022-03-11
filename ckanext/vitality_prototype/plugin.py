@@ -327,10 +327,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         final_query = ""
 
         if 'restricted_search:"enabled"' in facet_query:
-            log.info('restricted search is enabled')
             facet_query = facet_query.replace('restricted_search:"enabled"', "")
             if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
-                log.info('found matching restrictions')
                 fq_split = facet_query.split(' ')
                 for x in fq_split:
                     if(x.startswith('eov:') and '"' in x):
