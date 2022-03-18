@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 {# The below code is taken and integrated from the cioos-theme extension. This is a temporary solution to get it working until a better integration method is found #}
 {# The heading_private block is the only new addition for the vitality project #}
 
@@ -43,7 +42,7 @@ Example:
                 {% endif %}
             {% endblock %}
             {% block heading_title %}
-              {{ h.link_to(h.truncate(title, truncate_title), h.url_for(package.type + '_read', controller='package', a$
+              {{ h.link_to(h.truncate(title, truncate_title), h.url_for(package.type + '_read', controller='package', action='read', id=package.name)) }}
             {% endblock %}
             {% block heading_meta %}
                 {% if package.get('state', '').startswith('draft') %}
@@ -75,7 +74,7 @@ Example:
                 {% block resources_inner %}
                 {% for resource in h.dict_list_reduce(package.resources, 'format') %}
                 <li>
-                  <a href="{{ h.url_for(controller='package', action='read', id=package.name) }}" class="label label-de$
+                  <a href="{{ h.url_for(controller='package', action='read', id=package.name) }}" class="label label-default" data-format="{{ resource.lower() }}">{{ _(resource) }}</a>
                 </li>
                 {% endfor %}
               {% endblock %}
@@ -86,21 +85,3 @@ Example:
     {% endblock %}
   </li>
 {% endblock %}
-=======
-{% ckan_extends %}
-
-
-{% block heading_private %}
-    {% if package.private %}
-    <span class="dataset-private label label-inverse">
-        <i class="fa fa-lock"></i>
-        {{ _('Private') }}
-    </span>
-    {% elif package.mark_restricted %}
-    <span class="dataset-restricted label label-inverse">
-        <i class="fa fa-lock"></i>
-        {{ _('Restricted') }}
-    </span>
-    {% endif %}
-{% endblock %}
->>>>>>> adb9b30cd87de75eb1c384bb33211fbdeff4ac20
