@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {# The below code is taken and integrated from the cioos-theme extension. This is a temporary solution to get it working until a better integration method is found #}
 {# The heading_private block is the only new addition for the vitality project #}
 
@@ -85,3 +86,21 @@ Example:
     {% endblock %}
   </li>
 {% endblock %}
+=======
+{% ckan_extends %}
+
+
+{% block heading_private %}
+    {% if package.private %}
+    <span class="dataset-private label label-inverse">
+        <i class="fa fa-lock"></i>
+        {{ _('Private') }}
+    </span>
+    {% elif package.mark_restricted %}
+    <span class="dataset-restricted label label-inverse">
+        <i class="fa fa-lock"></i>
+        {{ _('Restricted') }}
+    </span>
+    {% endif %}
+{% endblock %}
+>>>>>>> adb9b30cd87de75eb1c384bb33211fbdeff4ac20
