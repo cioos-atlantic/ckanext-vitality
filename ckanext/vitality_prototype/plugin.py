@@ -3,7 +3,7 @@ import logging
 from re import search
 import uuid
 import copy
-import constants
+from . import constants
 import json
 
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType

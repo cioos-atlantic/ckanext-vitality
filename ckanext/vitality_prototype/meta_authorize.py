@@ -2,7 +2,7 @@ from enum import Enum
 import logging
 import json
 import copy
-import constants
+from . import constants
 from flatten_dict import flatten
 from flatten_dict import unflatten
 import uuid
