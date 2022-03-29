@@ -381,7 +381,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # Loop code is copied from after_show due to pkg_dict similarity
             # Decode unicode id...
-            dataset_id = pkg_dict["id"].encode("utf-8")
+            dataset_id = pkg_dict["id"]
 
             # Load dataset fields
             dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)

@@ -255,7 +255,7 @@ class MetaAuthorize(object):
         A dictionary where all fields that contained stringified JSON are now 
         expanded into dictionaries. 
         """
-        if type(input) == str or type(input) == unicode:
+        if type(input) == str:
             root = MetaAuthorize._parse_json(input)
         elif type(input) == dict:
             root = input
@@ -267,7 +267,7 @@ class MetaAuthorize(object):
                 # If the value is a string attempt to parse it as json
                 #log.info("Attempting to decode: %s - %s ", key, str(type(value)))
                 #TODO - this may need to change for python3
-                if type(value) == str or type(value) == unicode:
+                if type(value) == str:
                     #log.info("%s is a str/unicode!", key)
                     parsed_json = MetaAuthorize._parse_json(value, key)
 
