@@ -15,7 +15,9 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 import ckan.plugins.interfaces as interfaces
 from ckan.common import config
+import ckanext.vitality_prototype.cli as cli
 #TODO add variable for address
+
 
 log = logging.getLogger(__name__)
 
@@ -41,9 +43,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.ITemplateHelpers)
     plugins.implements(plugins.IActions, inherit=True)
     plugins.implements(plugins.IDatasetForm)
+    plugins.implements(plugins.IClick)
 
     # Authorization Interface
     meta_authorize = None
+
+    def get_commands(self):
+        return cli.get_commands()
 
     # ITemplateHelpers
     def get_helpers(self):
