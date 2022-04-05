@@ -954,8 +954,9 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_role(tx, id, name=None):
-        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r")
+        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
         for record in records:
+            log.info(record)
             return record['id']
         if(name==None):
             tx.run("CREATE (r:role {id:'"+id+"'})")

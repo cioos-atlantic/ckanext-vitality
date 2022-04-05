@@ -359,12 +359,20 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def after_search(self, search_results, search_params):
 
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
-        if toolkit.c.userobj == None:
-            user_id = 'public'   
-        else:
-            user = toolkit.c.userobj
-            user_id = user.id
-
+        try:
+            if toolkit.g.userobj == None:
+                user_id = 'public'   
+            else:
+                user = toolkit.g.userobj
+                user_id = user.id
+        except Exception as e:
+            # This is a bit of a band-aid fix for an issue during seeding
+            #   where the context doesn't properly get passed from cli.py so
+            #   the user information cannot be accessed. user_id isn't needed for
+            #   this action so here it's set to public, but it runs through this code regardless
+            #   TODO: Find a better implementation/proper fix for this
+            #   TODO: Make sure this doesn't impact dataset searches
+            user_id = 'public'
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
         
