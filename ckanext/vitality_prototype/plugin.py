@@ -229,6 +229,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     def organization_facets(self, facets_dict, organization_type, package_type, ):
         return facets_dict
 
+    def group_facets(self, facets_dict, group_type, package_type, ):
+        return facets_dict
+
     # IConfigurer
 
     def update_config(self, config_):
@@ -260,7 +263,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             return pkg_dict
 
         # Skip during indexing
-        if (type(context['user']) == str or type(context['user']) == unicode) and context['user'].encode('utf-8') == 'default':
+        # Below if statement broken in the ckan 2.9.5 update
+        # TODO: Remove if a fix is found
+        # if (type(context['user']) == str or type(context['user']) == unicode) and context['user'].encode('utf-8') == 'default':
+        # if(context['auth_user_obj'] == None):
+        if('user' not in context):
             log.info("This is before index we're done here.")
             return pkg_dict
 
@@ -268,10 +275,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Description
         if 'notes' in pkg_dict and pkg_dict['notes']:
-            notes = pkg_dict['notes'].encode("UTF-8")
+            notes = pkg_dict['notes']
 
         # Decode unicode id...
-        dataset_id = pkg_dict["id"].encode("utf-8")
+        dataset_id = pkg_dict['id']
         
         # Check to see if the dataset has just been created
         if(self.meta_authorize.get_dataset(dataset_id) == None):
@@ -304,7 +311,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Filter metadata fields
         filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
-
         # Replace pkg_dict with filtered
         pkg_dict.clear()
         for k,v in filtered.items():
@@ -322,6 +328,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'xml_location_url' not in pkg_dict:
                 pkg_dict['xml_location_url'] = ""
 
+        # Below are required to be in pkg_dict to not break theme
+        if 'relationships_as_object' not in pkg_dict:
+            pkg_dict['relationships_as_object'] = ""
+        if 'relationships_as_subject' not in pkg_dict:
+            pkg_dict['relationships_as_subject'] = ""
         return pkg_dict
 
     def before_search(self, search_params):
@@ -357,7 +368,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
 
     def after_search(self, search_results, search_params):
-
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         try:
             if toolkit.g.userobj == None:
@@ -434,13 +444,15 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
+            """
             if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
-                pkg_dict['metadata-point-of-contact'] = "{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}"
+                pkg_dict['metadata-point-of-contact'] = {"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}
             if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
-                pkg_dict['cited-responsible-party'] = "[{\"contact-info_online-resource\": \"-\", \"position-name\": \"-\", \"contact-info_email\": \"-\", \"role\": \"-\", \"organisation-name\": \"-\", \"individual-name\": \"-\"}]"
+                pkg_dict['cited-responsible-party'] = [{"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}]
+            """
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-
+            
             if restricted_search_enabled:
                 try:
                     if('res_extras_eov_restricted' in pkg_dict):
@@ -449,7 +461,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                                 pkg_dict['mark_restricted'] = True
                                 continue
                     if('res_extras_keywords_restricted' in pkg_dict and 'mark_restricted' not in pkg_dict):
-                        log.info(pkg_dict['res_extras_keywords_restricted'])
                         for x in restricted_search_keywords:
                             if x in pkg_dict['res_extras_keywords_restricted']['en'] or x in pkg_dict['res_extras_keywords_restricted']['fr']:
                                 pkg_dict['mark_restricted'] = True
@@ -463,15 +474,13 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def after_update(self, context, pkg_dict):
-        
-        log.info("HIT after update")
 
         # Only update public visibility settings if the field exists in pkg_dict
         if 'public-visibility' not in pkg_dict:
             return pkg_dict
 
         # Decode unicode id...
-        dataset_id = pkg_dict["id"].encode("utf-8")
+        dataset_id = pkg_dict["id"]
 
         # extract/load public visibility settings
         publically_visible_fields = json.loads(pkg_dict['public-visibility'])
@@ -492,24 +501,25 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_index(self, pkg_dict):
-    
-        log.info("hit beforeindex")
 
         if(pkg_dict['type'] != 'dataset'):
             log.info("This is not a dataset. Returning")
             return pkg_dict
 
-        dataset_id = pkg_dict["id"].encode("utf-8")
+        dataset_id = pkg_dict["id"]
 
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
 
         templates = self.meta_authorize.get_templates(dataset_id)
-        if len(templates) == 0:
+        if len(templates) > 0:
+            log.info("Dataset already exists in Neo4j. Skipping")
+        else:
+            log.info('adding templates')
             if 'notes' in pkg_dict and pkg_dict['notes']:
                 try:
-                    dataset_notes = json.loads(pkg_dict['notes'].encode('utf-8'))
+                    dataset_notes = json.loads(pkg_dict['notes'])
                     self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
                     self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
                 except ValueError as err:
@@ -614,8 +624,8 @@ def default_public_fields(fields):
     # Result dict
     result = copy.deepcopy(fields)
 
-    for key in result.keys():
-        key = key.encode('utf-8')
+    #TODO Fix this part, causing all keys to be added to minimal
+    for key in fields.keys():
         if (key not in constants.PUBLIC_FIELDS):
             result.pop(key, None)
 

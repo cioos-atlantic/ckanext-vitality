@@ -204,9 +204,11 @@ class MetaAuthorize(object):
             -------
             True if the entry should be seen by public and False if not.
             """
-            key_string = key.encode("UTF-8")
+            #Unusable in python 3
+            #key_string = key.encode("UTF-8")
+            #return key_string in fields and fields[key_string] in whitelist
 
-            return key_string in fields and fields[key_string] in whitelist
+            return key in fields and fields[key] in whitelist
 
         def test_if_flat(key, val):
             """
@@ -238,8 +240,7 @@ class MetaAuthorize(object):
         #log.info("Flattened dict {}".format(flattened))
         unflattened = unflatten(flattened, splitter='path')
         # STRINGIFY required json fields
-        encoded = self._encode(unflattened)  
-        return encoded
+        return unflattened
 
     def _decode(self, input):
         """
@@ -299,7 +300,7 @@ class MetaAuthorize(object):
 
             if key in constants.STRINGIFIED_FIELDS:
                 #log.info("Stringifying %s", key)
-                input[key] = unicode(json.dumps(value),'utf-8')
+                input[key] = value
 
         return input
 
@@ -308,7 +309,7 @@ class MetaAuthorize(object):
     def _parse_json(value, key=None):
         try:
             # TODO: Unicode stuff may need rework for python 3
-            return json.loads(value.encode('utf-8'))
+            return json.loads(value)
         except ValueError:
             #log.info("Value could not be parsed as JSON. %s", key)
             return None
