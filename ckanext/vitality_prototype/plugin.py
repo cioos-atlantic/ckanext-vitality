@@ -469,7 +469,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             """
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-<<<<<<< HEAD
             
             if restricted_search_enabled:
                 try:
@@ -485,12 +484,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                                 continue
                 except:
                     log.info('An error with restricted search occurred')
-=======
-
-            if(restricted_dataset):
-                pkg_dict['mark_restricted'] = True
-            
->>>>>>> development
         return search_results
 
     def after_create(self, context, pkg_dict):
