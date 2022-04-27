@@ -417,6 +417,23 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if len(visible_fields) == 0:
                 visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
 
+            restricted_dataset = False
+            if restricted_search_enabled:
+                try:
+                    if('res_extras_eov_restricted' in pkg_dict):
+                        for x in restricted_search_eovs:
+                            if x in pkg_dict['res_extras_eov_restricted']:
+                                restricted_dataset = True
+                                continue
+                    if('res_extras_keywords_restricted' in pkg_dict and 'mark_restricted' not in pkg_dict):
+                        log.info(pkg_dict['res_extras_keywords_restricted'])
+                        for x in restricted_search_keywords:
+                            if x in pkg_dict['res_extras_keywords_restricted']['en'] or x in pkg_dict['res_extras_keywords_restricted']['fr']:
+                                restricted_dataset = True
+                                continue
+                except:
+                    log.info('An error with restricted search occurred')
+
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
@@ -452,6 +469,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             """
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
+<<<<<<< HEAD
             
             if restricted_search_enabled:
                 try:
@@ -467,6 +485,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                                 continue
                 except:
                     log.info('An error with restricted search occurred')
+=======
+
+            if(restricted_dataset):
+                pkg_dict['mark_restricted'] = True
+            
+>>>>>>> development
         return search_results
 
     def after_create(self, context, pkg_dict):
