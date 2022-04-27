@@ -862,7 +862,7 @@ class _GraphMetaAuth(MetaAuthorize):
         A dictionary of elements where each element name is the key and the id is the value
         """
         result = {}
-        for record in tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)-[:can_see]->(e:element) RETURN DISTINCT e.name AS name, e.id AS id"):
+        for record in tx.run("MATCH (:dataset {id:'"+dataset_id +"'})-[:has_template]->(t:template)-[:can_see]->(e:element) RETURN DISTINCT e.name AS name, e.id AS id"):
             result[record['name']] = record['id']
         return result
 
@@ -954,7 +954,7 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_role(tx, id, name=None):
-        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r")
+        records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
         for record in records:
             return record['id']
         if(name==None):
