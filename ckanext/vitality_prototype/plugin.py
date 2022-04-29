@@ -333,6 +333,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             pkg_dict['relationships_as_object'] = ""
         if 'relationships_as_subject' not in pkg_dict:
             pkg_dict['relationships_as_subject'] = ""
+
+        log.info(pkg_dict)
         return pkg_dict
 
     def before_search(self, search_params):
