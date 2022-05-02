@@ -296,7 +296,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
-        log.info("Visible fields %s", visible_fields)
 
         log.info(pkg_dict['extras'])
         # Load dataset fields
@@ -312,7 +311,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Filter metadata fields
         filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
-        log.info("filtered: %s", filtered)
         # Replace pkg_dict with filtered
         pkg_dict.clear()
         for k,v in filtered.items():
@@ -336,7 +334,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'relationships_as_subject' not in pkg_dict:
             pkg_dict['relationships_as_subject'] = ""
 
-        log.info(pkg_dict)
         return pkg_dict
 
     def before_search(self, search_params):
