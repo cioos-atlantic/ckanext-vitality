@@ -287,7 +287,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
-        if context['auth_user_obj'] == None:
+        if 'auth_user_obj' not in context or context['auth_user_obj'] == None:
             user_id = 'public'   
         else:
             user = context['auth_user_obj']
