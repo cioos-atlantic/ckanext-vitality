@@ -334,6 +334,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'relationships_as_subject' not in pkg_dict:
             pkg_dict['relationships_as_subject'] = ""
 
+        log.info(pkg_dict)
         log.info(pkg_dict['cited-responsible-party'])
 
         return pkg_dict
