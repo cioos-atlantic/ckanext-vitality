@@ -335,7 +335,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             pkg_dict['relationships_as_subject'] = ""
 
         log.info(pkg_dict)
-        log.info(pkg_dict['cited-responsible-party'])
 
         return pkg_dict
 
@@ -471,6 +470,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
                 pkg_dict['cited-responsible-party'] = [{"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}]
             """
+            if 'cited-responsible-party' in pkg_dict:
+                log.info(dataset_id)
+                log.info('cited-responsible-party')
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
             
