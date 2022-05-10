@@ -294,8 +294,11 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             user_id = user.id
 
         
+        log.info(dataset_id)
+        log.info(pkg_dict.keys())
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
+        log.info(visible_fields)
 
         log.info(pkg_dict['extras'])
         # Load dataset fields
