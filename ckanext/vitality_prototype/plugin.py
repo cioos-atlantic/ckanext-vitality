@@ -173,7 +173,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def package_update(self, action, context, data_dict=None):
-        #log.info("A package has been updated by %s", context['auth_user_obj'].name)
+        log.info("A package has been updated") #by %s", context['auth_user_obj'].name)
+        log.info(data_dict.keys())
         result = action(context, data_dict)
         if(result['type'] != 'dataset'):
             log.info("Updated package not a dataset")
@@ -298,7 +299,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info(pkg_dict.keys())
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
-        
+
         log.info(pkg_dict['extras'])
         # Load dataset fields
         dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
