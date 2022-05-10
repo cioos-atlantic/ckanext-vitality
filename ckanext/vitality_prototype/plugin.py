@@ -298,8 +298,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info(pkg_dict.keys())
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
-        log.info(visible_fields)
-
+        
         log.info(pkg_dict['extras'])
         # Load dataset fields
         dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
@@ -338,18 +337,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             pkg_dict['relationships_as_object'] = ""
         if 'relationships_as_subject' not in pkg_dict:
             pkg_dict['relationships_as_subject'] = ""
-        if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
-            pkg_dict['cited-responsible-party'] = [{"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}]
-        else:
-            log.info(pkg_dict['cited-responsible-party'])
-        log.info(type(pkg_dict['cited-responsible-party']))
-        if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
-            pkg_dict['metadata-point-of-contact'] = {"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}
-        else:
-            log.info(pkg_dict['metadata-point-of-contact'])    
-        log.info(type(pkg_dict['metadata-point-of-contact']))
-
-        
 
         return pkg_dict
 
