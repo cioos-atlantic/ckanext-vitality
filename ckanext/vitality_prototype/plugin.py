@@ -329,6 +329,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['xml_location_url'] = ""
 
         log.info(dataset_id)
+        log.info(pkg_dict.keys())
         # Below are required to be in pkg_dict to not break theme
         if 'relationships_as_object' not in pkg_dict:
             pkg_dict['relationships_as_object'] = ""
@@ -338,12 +339,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             pkg_dict['cited-responsible-party'] = [{"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}]
         else:
             log.info(pkg_dict['cited-responsible-party'])
-            log.info(type(pkg_dict['cited-responsible-party']))
+        log.info(type(pkg_dict['cited-responsible-party']))
         if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
             pkg_dict['metadata-point-of-contact'] = {"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}
         else:
             log.info(pkg_dict['metadata-point-of-contact'])    
-            log.info(type(pkg_dict['metadata-point-of-contact']))
+        log.info(type(pkg_dict['metadata-point-of-contact']))
 
         
 
