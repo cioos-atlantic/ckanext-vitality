@@ -337,7 +337,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
             pkg_dict['cited-responsible-party'] = [{"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}]
         else:
-            log.info(pkg_dict['cited-repsonsible-party'])
+            log.info(pkg_dict['cited-responsible-party'])
         if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
             pkg_dict['metadata-point-of-contact'] = {"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}
         else:
