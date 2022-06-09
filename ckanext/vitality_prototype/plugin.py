@@ -342,6 +342,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def before_search(self, search_params):
+        #Handled by restricted search now
+        """
         facet_query = search_params['fq']
         if 'restricted_search:"enabled"' in facet_query:
             facet_query = facet_query.replace('restricted_search:"enabled"', "")
@@ -369,7 +371,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 search_params['fq'] = final_query.strip()
             else:
                 search_params['fq'] = facet_query.strip()   
-
+            """
         return search_params
 
 
@@ -394,6 +396,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         
         # Checks if the search requires restricted variable checking
         # TODO Overall costly - find a better alternative
+        # Moved to restricted_search plugin
+        """"
         restricted_search_enabled = False
         restricted_search_eovs = []
         restricted_search_keywords = []
@@ -405,6 +409,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 restricted_search_keywords.append(x.split('"')[1])
                 restricted_search_enabled = True
 
+        """
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
@@ -423,6 +428,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if len(visible_fields) == 0:
                 visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
 
+            """ Already done below?
             restricted_dataset = False
             if restricted_search_enabled:
                 try:
@@ -439,7 +445,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                                 continue
                 except:
                     log.info('An error with restricted search occurred')
-
+            """
+            
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
@@ -476,6 +483,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
             
+            # Moved to restricted_search plugin
+            """
             if restricted_search_enabled:
                 try:
                     if('res_extras_eov_restricted' in pkg_dict):
@@ -490,6 +499,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                                 continue
                 except:
                     log.info('An error with restricted search occurred')
+            """
         return search_results
 
     def after_create(self, context, pkg_dict):
