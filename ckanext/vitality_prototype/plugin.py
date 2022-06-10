@@ -273,7 +273,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             return pkg_dict
 
         log.info("This is not before index, filtering")
-
         # Description
         if 'notes' in pkg_dict and pkg_dict['notes']:
             notes = pkg_dict['notes']
@@ -296,7 +295,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         
         log.info(dataset_id)
-        log.info(pkg_dict.keys())
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
@@ -341,40 +339,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         return pkg_dict
 
-    def before_search(self, search_params):
-        #Handled by restricted search now
-        """
-        facet_query = search_params['fq']
-        if 'restricted_search:"enabled"' in facet_query:
-            facet_query = facet_query.replace('restricted_search:"enabled"', "")
-            if "eov:" in facet_query or 'tags_en:' in facet_query or 'tags:' in facet_query:
-                fq_split = facet_query.split(' ')
-                final_query = ""
-                for x in fq_split:
-                    if(x.startswith('eov:') and '"' in x):
-                        eov = x.split('"')[1]
-                        eov_restricted = 'res_extras_eov_restricted:"' + eov + '"'
-                        x= '(eov:"' + eov + '" OR ' + eov_restricted + ')'
-                    elif(x.startswith('tags:') and '"' in x):
-                        tags = x.split('"')[1]
-                        tags_restricted = 'res_extras_keywords_restricted:"' + tags + '"'
-                        x= '(tags:"' + tags + '" OR ' + tags_restricted + ')'
-                    elif(x.startswith('tags_en:') and '"' in x):
-                        tags = x.split('"')[1]
-                        tags_restricted = 'res_extras_keywords_restricted:"' + tags + '"'
-                        x= '(tags_en:"' + tags + '" OR ' + tags_restricted + ')'
-                    elif(x.startswith('tags_fr:') and '"' in x):
-                        tags = x.split('"')[1]
-                        tags_restricted = 'res_extras_keywords_restricted:"' + tags + '"'
-                        x= '(tags_fr:"' + tags + '" OR ' + tags_restricted + ')'
-                    final_query += x + ' '
-                search_params['fq'] = final_query.strip()
-            else:
-                search_params['fq'] = facet_query.strip()   
-            """
-        return search_params
-
-
     def after_search(self, search_results, search_params):
         # Gets the current user's ID (or if the user object does not exist, sets user as 'public')
         try:
@@ -394,22 +358,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
         
-        # Checks if the search requires restricted variable checking
-        # TODO Overall costly - find a better alternative
-        # Moved to restricted_search plugin
-        """"
-        restricted_search_enabled = False
-        restricted_search_eovs = []
-        restricted_search_keywords = []
-        for x in search_params['fq'][0].replace(")","").replace("(", "").split(" "):
-            if(x.startswith('res_extras_eov_restricted')):
-                restricted_search_eovs.append(x.split('"')[1])
-                restricted_search_enabled = True
-            elif(x.startswith('res_extras_keywords_restricted')):
-                restricted_search_keywords.append(x.split('"')[1])
-                restricted_search_enabled = True
-
-        """
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
             pkg_dict = search_results['results'][x]
@@ -427,25 +375,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             # If no relation exists between user and dataset, treat as public
             if len(visible_fields) == 0:
                 visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
-
-            """ Already done below?
-            restricted_dataset = False
-            if restricted_search_enabled:
-                try:
-                    if('res_extras_eov_restricted' in pkg_dict):
-                        for x in restricted_search_eovs:
-                            if x in pkg_dict['res_extras_eov_restricted']:
-                                restricted_dataset = True
-                                continue
-                    if('res_extras_keywords_restricted' in pkg_dict and 'mark_restricted' not in pkg_dict):
-                        log.info(pkg_dict['res_extras_keywords_restricted'])
-                        for x in restricted_search_keywords:
-                            if x in pkg_dict['res_extras_keywords_restricted']['en'] or x in pkg_dict['res_extras_keywords_restricted']['fr']:
-                                restricted_dataset = True
-                                continue
-                except:
-                    log.info('An error with restricted search occurred')
-            """
             
             # Filter metadata fields
             filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
@@ -483,23 +412,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
             
-            # Moved to restricted_search plugin
-            """
-            if restricted_search_enabled:
-                try:
-                    if('res_extras_eov_restricted' in pkg_dict):
-                        for x in restricted_search_eovs:
-                            if x in pkg_dict['res_extras_eov_restricted']:
-                                pkg_dict['mark_restricted'] = True
-                                continue
-                    if('res_extras_keywords_restricted' in pkg_dict and 'mark_restricted' not in pkg_dict):
-                        for x in restricted_search_keywords:
-                            if x in pkg_dict['res_extras_keywords_restricted']['en'] or x in pkg_dict['res_extras_keywords_restricted']['fr']:
-                                pkg_dict['mark_restricted'] = True
-                                continue
-                except:
-                    log.info('An error with restricted search occurred')
-            """
         return search_results
 
     def after_create(self, context, pkg_dict):
