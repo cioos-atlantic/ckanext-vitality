@@ -261,6 +261,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
         if context['package'].type != 'dataset':
+            log.info("Not a dataset, returning")
             return pkg_dict
 
         # Skip during indexing
@@ -336,7 +337,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             pkg_dict['relationships_as_object'] = ""
         if 'relationships_as_subject' not in pkg_dict:
             pkg_dict['relationships_as_subject'] = ""
-
         return pkg_dict
 
     def after_search(self, search_results, search_params):
@@ -415,7 +415,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             """
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-            
+
+            log.info("Dataset filtered")
+            log.info(pkg_dict)
+        log.info("returning search")
         return search_results
 
     def after_create(self, context, pkg_dict):
