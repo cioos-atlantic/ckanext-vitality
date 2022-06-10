@@ -354,12 +354,16 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             #   this action so here it's set to public, but it runs through this code regardless
             #   TODO: Find a better implementation/proper fix for this
             #   TODO: Make sure this doesn't impact dataset searches
+            log.info("Issue assessing user, setting to public")
             user_id = 'public'
         # However, at a time only loads a portion of the results
+        log.info(search_results)
+        log.info(search_params)
         datasets = search_results['results']
         
         # Go through each of the datasets returned in the results
         for x in range(len(datasets)):
+            
             pkg_dict = search_results['results'][x]
 
             # Loop code is copied from after_show due to pkg_dict similarity
