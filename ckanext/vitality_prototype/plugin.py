@@ -5,6 +5,7 @@ import uuid
 import copy
 from . import constants
 import json
+import datetime
 
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
 
@@ -333,6 +334,10 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             pkg_dict['relationships_as_object'] = ""
         if 'relationships_as_subject' not in pkg_dict:
             pkg_dict['relationships_as_subject'] = ""
+
+        if('metadata_modified' in pkg_dict):
+            log.info(pkg_dict['metadata_modified'])
+            log.info(datetime.datetime.utcnow().isoformat('T'))
         return pkg_dict
 
     def after_search(self, search_results, search_params):
