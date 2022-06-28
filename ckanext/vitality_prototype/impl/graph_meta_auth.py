@@ -252,6 +252,31 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             return session.read_transaction(self.__get_dataset, dataset_id)
+
+    def get_dataset_modified(self, dataset_id):
+        """
+        """
+        with self.driver.session() as session:
+            return session.read_transaction(self.__get_dataset_modified, dataset_id)
+
+    @staticmethod
+    def __get_dataset_modified(tx, id):
+        """ 
+        Runs a query to return the time the dataset was last modified if the dataset exists in the database
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to retrieve
+
+        Returns
+        -------
+        The dataset modification time if the dataset exists, None if it does not
+        """
+        records = tx.run("MATCH (d:dataset {id:'"+id+"'}) return d.modified as modified")
+        for record in records:
+            return record['modified']
+        return None
             
     def get_metadata_fields(self, dataset_id):
         """ 
@@ -505,6 +530,25 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             session.write_transaction(self.__set_dataset_name, dataset_id, dataset_name)
+
+    def set_dataset_modified(self, dataset_id, modified):
+        """ 
+        Sets the last modified time of the dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to assign a name to
+        modified : string
+            The time the dataset was last modified
+        """
+        with self.driver.session() as session:
+            session.write_transaction(self.__set_dataset_modified, dataset_id, modified)
+
+    @staticmethod
+    def __set_dataset_modified(tx, id, modified):
+        result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.modified='"+modified+"'")
+        return
 
     def set_template_access(self, role_id, template_id):
         """ 

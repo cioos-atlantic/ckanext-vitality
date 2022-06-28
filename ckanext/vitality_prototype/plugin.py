@@ -187,6 +187,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             self.meta_authorize.set_dataset_name(dataset_id, dataset_name)
             self.meta_authorize.set_dataset_description(dataset_id, 'en', dataset_description_en)
             self.meta_authorize.set_dataset_description(dataset_id, 'fr', dataset_description_fr)
+            self.meta_authorize.set_dataset_modified(dataset_id, data_dict['metadata_modified'])
         except:
             log.info("Something went wrong with the package update.")
             log.info(result)
@@ -321,6 +322,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Inject public visibility settings
         pkg_dict['public-visibility'] = self.meta_authorize.get_public_fields(dataset_id)
 
+        log.info(pkg_dict)
         # Inject empty resources list if resources has been filtered.
         if 'resources' not in pkg_dict:
             pkg_dict['resources'] = []
@@ -406,6 +408,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
                 pkg_dict['resources'].append({"format" : "Restricted metadata"})
             """
 
+            # Get modified time from Neo4j, harvest will do the comparison
+            pkg_dict['metadata_modified'] = self.meta_authorize.get_dataset_modified(dataset_id)
+
             # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
@@ -455,6 +460,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         dataset_id = pkg_dict["id"]
 
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
+
+        log.info(pkg_dict)
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], last_modified=pkg_dict['metadata_modified'], dname=pkg_dict['title'])
 
