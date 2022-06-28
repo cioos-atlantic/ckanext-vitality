@@ -124,6 +124,7 @@ PUBLIC_FIELDS = [
     "frequency-of-update",
     "keywords/en",
     "keywords/fr",
+    "metadata_modified",
     "metadata-point-of-contact",
     "notes_translated/en",
     "notes_translated/fr",
