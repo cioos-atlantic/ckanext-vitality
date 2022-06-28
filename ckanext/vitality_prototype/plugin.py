@@ -174,7 +174,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     @toolkit.chained_action
     def package_update(self, action, context, data_dict=None):
         log.info("A package has been updated") #by %s", context['auth_user_obj'].name)
-        log.info(data_dict.keys())
         result = action(context, data_dict)
         if(result['type'] != 'dataset'):
             log.info("Updated package not a dataset")
@@ -224,7 +223,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     # Interfaces
     def dataset_facets(self, facets_dict, package_type):
-        # For Python 3 upgrade: py3 lets you append to start of ordered dict
         return facets_dict
 
     def organization_facets(self, facets_dict, organization_type, package_type, ):
@@ -330,8 +328,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if 'xml_location_url' not in pkg_dict:
                 pkg_dict['xml_location_url'] = ""
 
-        log.info(dataset_id)
-        log.info(pkg_dict.keys())
         # Below are required to be in pkg_dict to not break theme
         if 'relationships_as_object' not in pkg_dict:
             pkg_dict['relationships_as_object'] = ""
@@ -357,8 +353,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             log.info("Issue assessing user, setting to public")
             user_id = 'public'
         # However, at a time only loads a portion of the results
-        log.info(search_results)
-        log.info(search_params)
         datasets = search_results['results']
         
         # Go through each of the datasets returned in the results
@@ -397,27 +391,22 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
             # If the metadata is restricted in any way will add a "resource" so a tag can be generated
             # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
+            # TODO Find somewhere to add URL back to VITALITY for tag
             pkg_dict['resources'].append({"format" : "VITALITY"})
 
+            """
             # If current user does not have full access to the metadata, tag the dataset as such
             user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
             if(user_dataset_access != "Full"):
                 pkg_dict['resources'].append({"format" : "Restricted metadata"})
+            """
 
             # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
                 pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
-            """
-            if 'metadata-point-of-contact' not in pkg_dict or not pkg_dict['metadata-point-of-contact']:
-                pkg_dict['metadata-point-of-contact'] = {"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}
-            if 'cited-responsible-party' not in pkg_dict or not pkg_dict['cited-responsible-party']:
-                pkg_dict['cited-responsible-party'] = [{"contact-info_online-resource": "-", "position-name": "-", "contact-info_email": "-", "role": "-", "organisation-name": "-", "individual-name": "-"}]
-            """
             if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
                 pkg_dict['xml_location_url'] = '-'
-
             log.info("Dataset filtered")
-            log.info(pkg_dict)
         log.info("returning search")
         return search_results
 
