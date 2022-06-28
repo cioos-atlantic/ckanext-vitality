@@ -456,7 +456,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
 
-        self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
+        self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], last_modified=pkg_dict['metadata_modified'], dname=pkg_dict['title'])
 
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) > 0:

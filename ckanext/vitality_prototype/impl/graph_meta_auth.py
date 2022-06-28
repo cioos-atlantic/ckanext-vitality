@@ -17,7 +17,7 @@ class _GraphMetaAuth(MetaAuthorize):
     def __close(self):
         self.driver.close()
 
-    def add_dataset(self, dataset_id, owner_id, dname=None):
+    def add_dataset(self, dataset_id, owner_id, last_modified, dname=None):
         """
         Adds a dataset to the database and assigns an organization owner
         
@@ -32,7 +32,7 @@ class _GraphMetaAuth(MetaAuthorize):
             # Check to see if the dataset already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_dataset, dataset_id) != None:
                 return
-            session.write_transaction(self.__write_dataset, dataset_id, dname)
+            session.write_transaction(self.__write_dataset, dataset_id, last_modified, dname)
             session.write_transaction(self.__bind_dataset_to_org, owner_id, dataset_id)
 
     def add_group(self, group_id, users):
@@ -922,11 +922,11 @@ class _GraphMetaAuth(MetaAuthorize):
         return result
 
     @staticmethod
-    def __write_dataset(tx,id,dname=None):
+    def __write_dataset(tx,id, last_modified,dname=None):
         if dname != None:
             # Create a safe dataset name if one is passed
             # https://stackoverflow.com/questions/7406102/create-sane-safe-filename-from-any-unsafe-string
-            result = tx.run("CREATE (:dataset { id: '"+id+"', name:'"+"".join([c for c in dname if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'})")
+            result = tx.run("CREATE (:dataset { id: '"+id+"', name:'"+"".join([c for c in dname if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"', modified: '" + last_modified +"'})")
         else:
             result = tx.run("CREATE (:dataset { id: '"+id+"'})")
         return
