@@ -126,6 +126,7 @@ PUBLIC_FIELDS = [
     "keywords/fr",
     "metadata_modified",
     "metadata-point-of-contact",
+    "notes",
     "notes_translated/en",
     "notes_translated/fr",
     "progress",
