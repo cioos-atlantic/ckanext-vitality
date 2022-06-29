@@ -409,7 +409,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             """
 
             # Get modified time from Neo4j, harvest will do the comparison
-            pkg_dict['metadata_modified'] = self.meta_authorize.get_dataset_modified(dataset_id)
+            #pkg_dict['metadata_modified'] = self.meta_authorize.get_dataset_modified(dataset_id)
+            #Temporary fix to force CKAN to reharvest everytime
+            pkg_dict['metadata_modified'] = datetime.datetime.utcnow().isoformat('T')
 
             # Add filler for specific fields with no value present so they can be harvested
             if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
@@ -460,8 +462,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         dataset_id = pkg_dict["id"]
 
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
-
-        log.info(pkg_dict)
 
         self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], last_modified=pkg_dict['metadata_modified'], dname=pkg_dict['title'])
 
