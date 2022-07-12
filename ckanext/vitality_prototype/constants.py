@@ -89,9 +89,9 @@ DATASET_FIELDS = [
         "vertical-extent",
         "xml_location_url",
         "organization/name",
-        "res_extras_eov_restricted",
-        "res_extras_keywords_restricted/en",
-        "res_extras_keywords_restricted/fr"
+        "extras_eov_restricted",
+        "extras_keywords_restricted/en",
+        "extras_keywords_restricted/fr"
     ]
 
 PUBLIC_FIELDS = [
@@ -134,9 +134,9 @@ PUBLIC_FIELDS = [
     "dataset-reference-date",
     "metadata-reference-date",
     "owner_org",
-    "res_extras_eov_restricted",
-    "res_extras_keywords_restricted/en",
-    "res_extras_keywords_restricted/fr"
+    "extras_eov_restricted",
+    "extras_keywords_restricted/en",
+    "extras_keywords_restricted/fr"
 ]
 
 # Template / harvest issues will occur if these fields don't exist
