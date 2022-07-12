@@ -14,7 +14,7 @@
         {{ h.render_markdown(h.get_translated(pkg, 'notes')) }}
     </div>
     {% endif %}
-    {% if pkg.res_extras_keywords_restricted or pkg.res_extras_eov_restricted %}
+    {% if pkg.extras_keywords_restricted or pkg.extras_eov_restricted %}
         <p>
             <h3>This dataset contains restricted information</h3>
             You can contact the dataset owner to request access
@@ -24,7 +24,7 @@
 {% endblock %}
 
   {% block package_tags %}
-    {% if pkg.res_extras_keywords_restricted %}
+    {% if pkg.extras_keywords_restricted %}
         <p>
         Open Variables:
         </p>
@@ -32,7 +32,7 @@
         <p>
         Restricted Variables:
         </p>
-        {% snippet "package/snippets/tags.html", tags=pkg.res_extras_keywords_restricted[h.lang()] %}
+        {% snippet "package/snippets/tags.html", tags=pkg.extras_keywords_restricted[h.lang()] %}
     {% else %}
         {% snippet "package/snippets/tags.html", tags = pkg.keywords[h.lang()] %}
     {% endif %}
