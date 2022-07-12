@@ -358,6 +358,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             #   TODO: Find a better implementation/proper fix for this
             #   TODO: Make sure this doesn't impact dataset searches
             log.info("Issue assessing user, setting to public")
+            log.info("If this message appears during database seeding it is normal, otherwise an error has occurred")
             user_id = 'public'
         # However, at a time only loads a portion of the results
         datasets = search_results['results']
