@@ -2,9 +2,10 @@ from enum import Enum
 import logging
 import json
 import copy
-import constants
+from . import constants
 from flatten_dict import flatten
 from flatten_dict import unflatten
+import uuid
 
 
 '''
@@ -65,12 +66,12 @@ class MetaAuthorize(object):
 
         return result
 
-    def add_org(self, org_id):
+    def add_org(self, org_id, users, org_name):
         """ 
         Add an organization to the authorization model with org_id.
         """
 
-        raise NotImplementedError("Class %s doesn't implement add_org(self, org_id)" % (self.__class__.__name__))
+        raise NotImplementedError("Class %s doesn't implement add_org(self, org_id, users, org_name)" % (self.__class__.__name__))
 
     def get_orgs(self):
         """
@@ -89,7 +90,7 @@ class MetaAuthorize(object):
         """
         Returns a list of group ids from authorization model.
         """
-        raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.name))
+        raise NotImplementedError("Class %s doesn't implement get_groups(self)" % (self.__class__.__name__))
 
     def add_user(self, user_id):
         """
@@ -112,6 +113,14 @@ class MetaAuthorize(object):
 
         raise NotImplementedError("Class %s doesn't implement add_dataset(self, dataset_id, fields, owner_id)" % (self.__class__.__name__))
 
+    def add_metadata_fields(self, dataset_id, fields):
+        """
+        Add a field to the current dataset in the authorization model.
+        """
+
+        raise NotImplementedError("Class %s doesn't implement add_metadata_fields(self, dataset_id, field)" % (self.__class__.__name__))
+
+
     def get_metadata_fields(self, dataset_id):
         """
         Return a dictionary of metadata fields based on the dataset_id
@@ -125,8 +134,13 @@ class MetaAuthorize(object):
         Return the subset of metadata field ids in this dataset for which the user has access.
         """
         
-        raise NotImplementedError("Class %s doesn't implement get_visible_fields(self, dataset_id, user_id)")
+        raise NotImplementedError("Class %s doesn't implement get_visible_fields(self, dataset_id, user_id)" % (self.__class__.__name__))
 
+    def get_public_fields(self, dataset_id):
+        """
+        Return the subset of metadata field ids in this dataset which anonymous (public) users can access.
+        """
+        raise NotImplementedError("Class %s doesn't implement get_public_fields(self, dataset_id)" % (self.__class__.__name__))
 
     def set_visible_fields(self, dataset_id, user_id, whitelist):
         """
@@ -135,6 +149,29 @@ class MetaAuthorize(object):
 
         raise NotImplementedError("Class %s doesn't implement set_visible_fields(self, dataset_id, user_id, whitelist)" % (self.__class__.__name__))
     
+    def keys_match(self, unfiltered_content, known_fields):
+        """
+        Checks if fields in unfiltered_content are already known (in known_fields)
+        
+        Parameters
+        ----------
+        unfiltered_content : dict
+            The dictionary to check for new fields
+        known_fields: dict
+            Dictionary representing known fields that the dictionary should contain
+
+        Returns
+        -------
+        A set of tuples with the new fields and a generated uuid
+
+        """
+
+        if not isinstance(unfiltered_content, dict):
+            raise TypeError("Only dicts can be checked for new fields! Attempted to check " + str(type(input)))
+
+        #Iterate over unfiltered_content and return the keys and a generated UUID if they do not already exist in fields
+        flattened = {(k, uuid.uuid4()) for k in flatten(self._decode(unfiltered_content), reducer='path').keys() if k not in known_fields.keys()}
+        return flattened
 
     def filter_dict(self, unfiltered_content, fields, whitelist):
         """
@@ -167,10 +204,11 @@ class MetaAuthorize(object):
             -------
             True if the entry should be seen by public and False if not.
             """
-            key_string = key.encode("UTF-8")
+            #Unusable in python 3
+            #key_string = key.encode("UTF-8")
+            #return key_string in fields and fields[key_string] in whitelist
 
-            # If the key_string is not one we recognize, pop it.    
-            return key_string in fields and fields[key_string] in whitelist
+            return key in fields and fields[key] in whitelist
 
         def test_if_flat(key, val):
             """
@@ -199,13 +237,11 @@ class MetaAuthorize(object):
         flattened = {k: test_if_flat(k, v) for k, v in flatten(self._decode(unfiltered_content), reducer='path').items() if is_visible(k)}
         # do not clear the original dictionary, which is needed for admin access.
         # UNFLATTEN filtered dictionary
-        log.info("Flattened dict {}".format(flattened))
+        #log.info("Flattened dict {}".format(flattened))
         unflattened = unflatten(flattened, splitter='path')
         # STRINGIFY required json fields
-        encoded = self._encode(unflattened)  
-        return encoded
+        return unflattened
 
-    
     def _decode(self, input):
         """
         Decode dictionary containing string encoded JSON objects. 
@@ -220,7 +256,7 @@ class MetaAuthorize(object):
         A dictionary where all fields that contained stringified JSON are now 
         expanded into dictionaries. 
         """
-        if type(input) == str or type(input) == unicode:
+        if type(input) == str:
             root = MetaAuthorize._parse_json(input)
         elif type(input) == dict:
             root = input
@@ -232,7 +268,7 @@ class MetaAuthorize(object):
                 # If the value is a string attempt to parse it as json
                 #log.info("Attempting to decode: %s - %s ", key, str(type(value)))
                 #TODO - this may need to change for python3
-                if type(value) == str or type(value) == unicode:
+                if type(value) == str:
                     #log.info("%s is a str/unicode!", key)
                     parsed_json = MetaAuthorize._parse_json(value, key)
 
@@ -242,7 +278,7 @@ class MetaAuthorize(object):
                         if type(parsed_json) == dict:
                             # decode the parsed dict
                             parsed_json = self._decode(parsed_json)
-                            log.info('%s - parsed type %s', key, type(parsed_json))
+                            #log.info('%s - parsed type %s', key, type(parsed_json))
                             # replace the value at the current key
                             root[key] = parsed_json
                         # into a list
@@ -263,8 +299,8 @@ class MetaAuthorize(object):
         for key,value in input.items():
 
             if key in constants.STRINGIFIED_FIELDS:
-                log.info("Stringifying %s", key)
-                input[key] = unicode(json.dumps(value),'utf-8')
+                #log.info("Stringifying %s", key)
+                input[key] = value
 
         return input
 
@@ -273,7 +309,7 @@ class MetaAuthorize(object):
     def _parse_json(value, key=None):
         try:
             # TODO: Unicode stuff may need rework for python 3
-            return json.loads(value.encode('utf-8'))
+            return json.loads(value)
         except ValueError:
             #log.info("Value could not be parsed as JSON. %s", key)
             return None

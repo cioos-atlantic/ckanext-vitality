@@ -5,7 +5,9 @@ rather than keeping all within one
 Can use -v on run to return verbose tests with more detail
 
 testDict is used to simulate pkg_dict throughout the file
-
+Using data directly from the model is avoided to narrow down cases 
+    if something doesn't match the tests, but perhaps some proper
+    mock data should be used here at some point in the future
 """
 import unittest
 import ckanext.vitality_prototype.meta_authorize as meta_authorize
@@ -14,6 +16,7 @@ import ckanext.vitality_prototype.meta_authorize as meta_authorize
 
 # Testing the create function
 # TODO write create tests (not implemented yet)
+"""
 class TestCreate(unittest.TestCase):
 
     testClass_create = meta_authorize.MetaAuthorize()
@@ -32,6 +35,7 @@ class TestCreate(unittest.TestCase):
         }
         #self.testClass_create =meta_authorize.MetaAuthorize.create(meta_authorize.MetaAuthorizeType.GRAPH, opts)
         pass
+"""
 
 # Testing the decode function
 class TestDecode(unittest.TestCase):
@@ -358,6 +362,34 @@ class TestFilterDict(unittest.TestCase):
         whitelist= []
         filteredDict = self.test_filterDict.filter_dict(self.testDict, self.testFields, whitelist)
         self.assertDictEqual(filteredDict, {})
+
+    def test_filter_missingField_noWhitelist(self):
+        """
+        Test filter_dict to see if having a field in pkg_dict & whitelist, but not in fields will
+            cause it to ignore the pkg_dict information
+        Expected no result since nothing is in whitelist
+        """
+        whitelist = ['']
+        custom_testDict = self.testDict.copy()
+        custom_testDict['customField'] = 'To test to see how custom fields interact with filter'
+        filteredDict = self.test_filterDict.filter_dict(self.testDict, self.testFields, whitelist)
+        compareDict = {}
+        self.assertDictEqual(filteredDict, compareDict)
+
+    def test_filter_missingField_singleWhitelist(self):
+        """
+        Test filter_dict to see if having a field in pkg_dict & whitelist, but not in fields will
+            cause it to ignore the pkg_dict information
+        Expected no result since nothing is in whitelist
+        """
+        whitelist = ['8dfa8f2b-4e13-48c1-8a49-d706ecfae5f2']
+        custom_testDict = self.testDict.copy()
+        custom_testDict['customField'] = 'To test to see how custom fields interact with filter'
+        filteredDict = self.test_filterDict.filter_dict(self.testDict, self.testFields, whitelist)
+        compareDict = {
+            u'bbox-north-lat': u'50.23343445'
+        }
+        self.assertDictEqual(filteredDict, compareDict)
     
     def test_filter_unicode_singleWhitelist(self):
         """
@@ -514,6 +546,7 @@ class TestFilterDict(unittest.TestCase):
         pass
 
 # Tests the methods in the class that raise not implemented errors
+# Not expecting much here, but just in case an accidental change occurs
 class TestNotImplemented(unittest.TestCase):
     """
     Class for testing various methods that raise not implemented errors in
@@ -535,11 +568,9 @@ class TestNotImplemented(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.add_group("test")
 
-    """
     def test_get_groups(self):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.get_groups()
-    """
 
     def test_add_user(self):
         with self.assertRaises(NotImplementedError):
@@ -560,7 +591,219 @@ class TestNotImplemented(unittest.TestCase):
     def test_set_visible_fields(self):
         with self.assertRaises(NotImplementedError):
             self.test_notImplemented.set_visible_fields("test", "test", [])
-    
+
+# Tests the keysMatch function within 
+class TestKeysMatch(unittest.TestCase):
+    """
+    Class for testing the keys_match function 
+        in meta authorize
+    May generate UUIDs outside of keys_match in future, so if that
+        is case can remove isolate_fields function
+    """
+
+    test_keysMatch = meta_authorize.MetaAuthorize()
+
+    # Not part of testing
+    def _isolate_fields(self, new_fields):
+        """
+        Internal method used to isolate the field names
+            Since UUIDs are generated upon creation and cannot be
+            matched against easily
+        """
+        field_names = set()
+        for val in new_fields:
+            field_names.add(val[0])
+        return field_names
+
+    def test_keysMatch_noCustomField(self):
+        """
+        Test for if the pkg_dict does not contain any fields not already in
+            fields
+        Expected outcome to return an empty set
+        """
+        test_dict = {
+            u'bbox-north-lat': u'50.23343445',
+            u'bbox-south-lat': u'52.33428394',
+            u'bbox-east-long': u'-54.9435608299',
+            u'bbox-west-long': u'-54.9243032933'
+        }
+        test_fields = {
+            'bbox-north-lat': '8dfa8f2b-4e13-48c1-8a49-d706ecfae5f2',
+            'bbox-south-lat': 'c124c58b-1723-4d7d-908e-772ef7713950',
+            'bbox-east-long': 'edcb7683-79a8-4b0d-8524-a8c0d313f932',
+            'bbox-west-long': 'd82134c5-99ce-467a-a315-73b71def75d2'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        compare_set = set()
+        self.assertSetEqual(new_fields, compare_set)
+
+    def test_keysMatch_addCustomField_single(self):
+        """
+        Test for if the input dictionary contains fields not in
+            known_fields
+        Expected outcome to return a set with bbox-east-long
+        """        
+        test_dict = {
+            u'bbox-north-lat': u'50.23343445',
+            u'bbox-south-lat': u'52.33428394',
+            u'bbox-east-long': u'-54.9435608299',
+            u'bbox-west-long': u'-54.9243032933'
+        }
+        test_fields = {
+            'bbox-north-lat': '8dfa8f2b-4e13-48c1-8a49-d706ecfae5f2',
+            'bbox-south-lat': 'c124c58b-1723-4d7d-908e-772ef7713950',
+            'bbox-west-long': 'd82134c5-99ce-467a-a315-73b71def75d2'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        #Loop new_fields to collect only the field names and not worry about the uuids
+        field_names = self._isolate_fields(new_fields)
+        compare_set = {'bbox-east-long'}
+        self.assertSetEqual(field_names, compare_set)
+
+    def test_keysMatch_addCustomField_multiple(self):
+        """
+        Test for if the input dictionary contains fields not in
+            known_fields
+        Expected outcome to return a set with bbox-east-long
+        """        
+        test_dict = {
+            u'bbox-north-lat': u'50.23343445',
+            u'bbox-south-lat': u'52.33428394',
+            u'bbox-east-long': u'-54.9435608299',
+            u'bbox-west-long': u'-54.9243032933'
+        }
+        test_fields = {
+            'bbox-north-lat': '8dfa8f2b-4e13-48c1-8a49-d706ecfae5f2',
+            'bbox-west-long': 'd82134c5-99ce-467a-a315-73b71def75d2'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        #Loop new_fields to collect only the field names and not worry about the uuids
+        field_names = self._isolate_fields(new_fields)
+        compare_set = {'bbox-south-lat', 'bbox-east-long'}
+        self.assertSetEqual(field_names, compare_set)
+
+    def test_keysMath_noCustomField_nested(self):
+        """
+        Testing to see if no custom fields exist, but the existing
+            fields are nested in the dict (use paths)
+        Note that a uuid for the parent is not required
+        Expected output is an empty set
+        """
+        test_dict = {
+            u'tracking_summary':{'total':6, 'recent':6}
+        }
+        test_fields = {
+            'tracking_summary/total':'f028aef9-951c-44bb-906d-f3d50e8d1782',
+            'tracking_summary/recent':'550dd97c-2462-4106-a126-12764ad243e3'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        compare_set = set()
+        self.assertSetEqual(new_fields, compare_set)
+
+    def test_keysMatch_addCustomField_nested_single(self):
+        """
+        Testing to see if no custom fields exist, but the existing
+            fields are nested in the dict (use paths)
+        Expected output is an empty set
+        """
+        test_dict = {
+            u'tracking_summary':{'total':6, 'recent':6, 'missing':0}
+        }
+        test_fields = {
+            'tracking_summary/total':'f028aef9-951c-44bb-906d-f3d50e8d1782',
+            'tracking_summary/recent':'550dd97c-2462-4106-a126-12764ad243e3'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        field_names = self._isolate_fields(new_fields)
+        compare_set = {'tracking_summary/missing'}
+        self.assertSetEqual(field_names, compare_set)
+
+    def test_keysMatch_addCustomField_nested_multiple(self):
+        """
+        Testing to see if no custom fields exist, but the existing
+            fields are nested in the dict (use paths)
+        Expected output is a set with tracking_summary/missing and 
+            tracking_summary/notes/extra
+        """
+        test_dict = {
+            u'tracking_summary':{'total':6, 'recent':6, 'missing':0, 'notes':{'extra':'none'}}
+        }
+        test_fields = {
+            'tracking_summary/total':'f028aef9-951c-44bb-906d-f3d50e8d1782',
+            'tracking_summary/recent':'550dd97c-2462-4106-a126-12764ad243e3'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        field_names = self._isolate_fields(new_fields)
+        compare_set = {'tracking_summary/missing', 'tracking_summary/notes/extra'}
+        self.assertSetEqual(field_names, compare_set)
+
+    def test_keysMatch_addCustomField_encoded_single(self):
+        """
+        Testing to see if no custom fields exist, but the existing
+            fields are nested in the dict (use paths)
+        Expected output is an empty set
+        """
+        test_dict = {
+            u'tracking_summary': u'{"total":6, "recent":6, "missing":0}'
+        }
+        test_fields = {
+            'tracking_summary/total':'f028aef9-951c-44bb-906d-f3d50e8d1782',
+            'tracking_summary/recent':'550dd97c-2462-4106-a126-12764ad243e3'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        field_names = self._isolate_fields(new_fields)
+        compare_set = {'tracking_summary/missing'}
+        self.assertSetEqual(field_names, compare_set)
+
+    def test_keysMatch_addCustomField_encoded_multiple(self):
+        """
+        Testing to see if no custom fields exist, but the existing
+            fields are nested in the dict (use paths)
+        Expected output is a set with tracking_summary/missing and 
+            tracking_summary/notes/extra
+        """
+        test_dict = {
+            u'tracking_summary':u'{"total":6, "recent":6, "missing":0, "notes":{"extra":"none"}}'
+        }
+        test_fields = {
+            'tracking_summary/total':'f028aef9-951c-44bb-906d-f3d50e8d1782',
+            'tracking_summary/recent':'550dd97c-2462-4106-a126-12764ad243e3'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        field_names = self._isolate_fields(new_fields)
+        compare_set = {'tracking_summary/missing', 'tracking_summary/notes/extra'}
+        self.assertSetEqual(field_names, compare_set)
+
+    def test_keysMatch_fieldMissingFromPkgDict(self):
+        """
+        The method only works one way (from input to fields) and should not have an issue
+            if items in the fields category are not present in the input
+        Expected outcome is an empty set
+        """
+        test_dict = {
+            u'bbox-north-lat': u'50.23343445',
+            u'bbox-south-lat': u'52.33428394'
+        }
+        test_fields = {
+            'bbox-north-lat': '8dfa8f2b-4e13-48c1-8a49-d706ecfae5f2',
+            'bbox-south-lat': 'c124c58b-1723-4d7d-908e-772ef7713950',
+            'bbox-east-long': 'edcb7683-79a8-4b0d-8524-a8c0d313f932',
+            'bbox-west-long': 'd82134c5-99ce-467a-a315-73b71def75d2'
+        }
+        new_fields = self.test_keysMatch.keys_match(test_dict, test_fields)
+        compare_set = set()
+        self.assertSetEqual(new_fields, compare_set)
+
+    def test_keysMatch_wrongType_unfilteredContent(self):
+        """
+        Trying to input a non-dictionary into pkg dict
+        """
+        test_str = "This shouldn't be allowed to run"
+        test_fields = {
+            'bbox-north-lat': '8dfa8f2b-4e13-48c1-8a49-d706ecfae5f2'
+        }
+        with self.assertRaises(TypeError):
+            self.test_keysMatch.keys_match(test_str, test_fields)
 
 # Required to run unit test
 if __name__ == '__main__':

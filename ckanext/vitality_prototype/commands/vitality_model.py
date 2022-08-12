@@ -96,11 +96,15 @@ class VitalityModel(CkanCommand):
     def seed_orgs(self, context):
         org_list = get_action('organization_list')(context, {'all_fields':True, 'include_users':True})
         print("Got {} organizations".format(len(org_list)))
-
         print(org_list)
 
+        admin_list = self.meta_authorize.get_admins()
+
+        # Set admin access for each organization
         for o in org_list:
-            self.meta_authorize.add_org(o['id'],o['users'])
+            self.meta_authorize.add_org(o['id'],o['users'],o['name'])
+            for admin in admin_list:
+                self.meta_authorize.set_admin_form_access(admin, o['id'])
             continue
 
     def seed_groups(self, context):
@@ -108,7 +112,6 @@ class VitalityModel(CkanCommand):
         print("Got {} groups".format(len(group_list)))
 
         for g in group_list:
-
             self.meta_authorize.add_group(g['id'].decode('utf-8'), g['users'])
 
         print("group_list")
@@ -116,16 +119,34 @@ class VitalityModel(CkanCommand):
 
 
     def seed_users(self, context):
-        user_list = get_action('user_list')(context,{})
+        # Create admin role
+        self.meta_authorize.add_role('admin', 'admin')
+        self.meta_authorize.add_role('public', 'public')
 
+        user_list = get_action('user_list')(context,{})
         print("Got {} users".format(len(user_list)))
         for u in user_list:
             print(u)
-            self.meta_authorize.add_user(u['id'].decode('utf-8'))
 
-        # Create the public user for people not logged in.
-        self.meta_authorize.add_user('public')
+            user_id = u['id'].decode('utf-8')
+            user_name = u['name'].decode('utf-8')
+            user_email = ""
 
+            # Email not required, so check if it exists first
+            if(u['email']):
+                user_email = u['email'].decode('utf-8')
+            self.meta_authorize.add_user(user_id, user_name, user_email)
+
+            # Admins in CKAN are marked as such
+            if u['sysadmin']:
+                self.meta_authorize.set_user_role(user_id, 'admin')
+
+            # TODO Figure out a better way to set GIDs?
+            self.meta_authorize.set_user_gid(user_id, "guest")
+
+        # Create the public user & role for people not logged in.
+        self.meta_authorize.add_user('public', 'Public')
+        self.meta_authorize.set_user_role('public', 'public')
 
     def _load_config(self):
         super(VitalityModel, self)._load_config()

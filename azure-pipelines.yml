@@ -3,12 +3,14 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-trigger:
-- unit-testing
+trigger: none
+
+pr: none
 
 pool: Default
 
 steps:
+
 - script: |
     echo "Running Tests"
     pwd
@@ -32,3 +34,9 @@ steps:
     codeCoverageTool: Cobertura
     summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
     reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.Repository.LocalPath)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'

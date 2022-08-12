@@ -24,18 +24,19 @@ DATASET_FIELDS = [
         "metadata_created",
         "metadata_modified",
         "metadata-language",
-        "metadata-point-of-contact/contact-info_email",
-        "metadata-point-of-contact/contact-info_online-resource_application-profile",
-        "metadata-point-of-contact/contact-info_online-resource_description",
-        "metadata-point-of-contact/contact-info_online-resource_function",
-        "metadata-point-of-contact/contact-info_online-resource_name",
-        "metadata-point-of-contact/contact-info_online-resource_protocol",
-        "metadata-point-of-contact/contact-info_online-resource_protocol-request",
-        "metadata-point-of-contact/contact-info_online-resource_url",
-        "metadata-point-of-contact/individual-name",
-        "metadata-point-of-contact/organisation-name",
-        "metadata-point-of-contact/position-name",
-        "metadata-point-of-contact/role",
+        "metadata-point-of-contact",
+        # "metadata-point-of-contact/contact-info_email",
+        # "metadata-point-of-contact/contact-info_online-resource_application-profile",
+        # "metadata-point-of-contact/contact-info_online-resource_description",
+        # "metadata-point-of-contact/contact-info_online-resource_function",
+        # "metadata-point-of-contact/contact-info_online-resource_name",
+        # "metadata-point-of-contact/contact-info_online-resource_protocol",
+        # "metadata-point-of-contact/contact-info_online-resource_protocol-request",
+        # "metadata-point-of-contact/contact-info_online-resource_url",
+        # "metadata-point-of-contact/individual-name",
+        # "metadata-point-of-contact/organisation-name",
+        # "metadata-point-of-contact/position-name",
+        # "metadata-point-of-contact/role",
         "metadata-reference-date",
         "name",
         "notes/en",
@@ -87,7 +88,10 @@ DATASET_FIELDS = [
         "url",
         "vertical-extent",
         "xml_location_url",
-        "organization/name"
+        "organization/name",
+        "res_extras_eov_restricted",
+        "res_extras_keywords_restricted/en",
+        "res_extras_keywords_restricted/fr"
     ]
 
 PUBLIC_FIELDS = [
@@ -114,15 +118,60 @@ PUBLIC_FIELDS = [
     "organization/type",
     "organization/name",
     "title_translated/en",
-    "title_translated/fr" 
+    "title_translated/fr",
+    "cited-responsible-party",
+    "eov",
+    "frequency-of-update",
+    "keywords/en",
+    "keywords/fr",
+    "metadata-point-of-contact",
+    "notes_translated/en",
+    "notes_translated/fr",
+    "progress",
+    "resource-type",
+    "dataset-reference-date",
+    "metadata-reference-date",
+    "owner_org",
+    "res_extras_eov_restricted",
+    "res_extras_keywords_restricted/en",
+    "res_extras_keywords_restricted/fr"
+]
+
+# Template / harvest issues will occur if these fields don't exist
+MINIMUM_FIELDS = [
+    # Template issues
+    "id",
+#    "resources",
+    "type",
+    "name",
+    "state",
+    "organization/id",
+    "organization/state",
+    "organization/type",
+    "organization/name",
+    "dataset-reference-date",
+    "metadata-reference-date",
+    # Harvest issues
+    "cited-responsible-party",
+    "eov",
+    "frequency-of-update",
+    "keywords/en",
+    "keywords/fr",
+    "metadata-point-of-contact",
+    "notes_translated/en",
+    "notes_translated/fr",
+    "progress",
+    "resource-type",
+    "owner_org"
+
 ]
 
 STRINGIFIED_FIELDS = [
     "metadata-point-of-contact",
-        "spatial",
-        "temporal-extent",
-        "unique-resource-identifier-full",
-        "notes",
-        "cited-responsible-party",
-        "dataset-reference-date"
+    "spatial",
+    "temporal-extent",
+    "unique-resource-identifier-full",
+    "notes",
+    "cited-responsible-party",
+    "dataset-reference-date"
 ]
