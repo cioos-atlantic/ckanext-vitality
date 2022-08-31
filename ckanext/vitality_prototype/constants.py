@@ -91,7 +91,8 @@ DATASET_FIELDS = [
         "organization/name",
         "extras_eov_restricted",
         "extras_keywords_restricted/en",
-        "extras_keywords_restricted/fr"
+        "extras_keywords_restricted/fr",
+        "mark_restricted"
     ]
 
 PUBLIC_FIELDS = [
@@ -136,7 +137,8 @@ PUBLIC_FIELDS = [
     "owner_org",
     "extras_eov_restricted",
     "extras_keywords_restricted/en",
-    "extras_keywords_restricted/fr"
+    "extras_keywords_restricted/fr",
+    "mark_restricted"
 ]
 
 # Template / harvest issues will occur if these fields don't exist
