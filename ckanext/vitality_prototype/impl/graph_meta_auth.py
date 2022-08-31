@@ -1,4 +1,5 @@
 import logging
+from operator import truediv
 from os import stat
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 from neo4j import GraphDatabase
@@ -183,6 +184,18 @@ class _GraphMetaAuth(MetaAuthorize):
             for name,id in fields.items():
                 session.write_transaction(self.__write_metadata_field, name, id, template_id)
 
+    def delete_dataset(self, dataset_id):
+        """
+        Deletes an dataset given its ID
+        Also removes associated templates and elements
+        
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of dataset to delete
+        """
+        with self.driver.session() as session:
+            session.write_transaction(self.__delete_dataset, dataset_id)
 
     def delete_organization(self, org_id):
         """
@@ -252,7 +265,7 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             return session.read_transaction(self.__get_dataset, dataset_id)
-            
+
     def get_metadata_fields(self, dataset_id):
         """ 
         Returns the elements managed by a dataset
@@ -476,6 +489,40 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_visible_fields, dataset_id, user_id)
 
+    def is_unrestricted(self, dataset_id):
+        """ 
+        Checks if a dataset has 'Full' template access for the public users
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check
+
+        Returns
+        -------
+        True if the template name of the public role is set to 'Full', False otherwise
+        """
+        with self.driver.session() as session:
+            return session.read_transaction(self.__is_unrestricted_for_user, dataset_id, 'public')
+    
+    def is_unrestricted_for_user(self, dataset_id, user_id):
+        """ 
+        Checks if a dataset has 'Full' template access for a given user
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check
+        user_id : string
+            The id/uuid of the user to check access for
+
+        Returns
+        -------
+        True if the template name of the user's role is set to 'Full', False otherwise
+        """
+        with self.driver.session() as session:
+            return session.read_transaction(self.__is_unrestricted_for_user, dataset_id, user_id)
+
     def set_dataset_description(self, dataset_id, language, description):
         """ 
         Sets a description for a dataset in a given language
@@ -505,7 +552,7 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             session.write_transaction(self.__set_dataset_name, dataset_id, dataset_name)
-
+            
     def set_template_access(self, role_id, template_id):
         """ 
         Sets a 'uses_template' relationship between a given role and template for a dataset
@@ -848,6 +895,30 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
+    def __is_unrestricted_for_user(tx, dataset_id, user_id):
+        """ 
+        Runs a query to check if the given user has full access to the dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check
+        id : string
+            The id/uuid of the user to check access for
+
+        Returns
+        -------
+        True if the template access is named 'Full' and false if template access is any other form
+        """
+        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role)<-[:has_role]-(:user {id:'"+user_id+"'}) return t.name as name")
+        for record in records:
+            if record['name'] == 'Full':
+                return True
+            else:
+                return False
+        return True
+
+    @staticmethod
     def __read_elements(tx, dataset_id):
         """ 
         Runs a query to retrieve all elements associated with a provided dataset
@@ -986,6 +1057,11 @@ class _GraphMetaAuth(MetaAuthorize):
         result = tx.run("CREATE (u:user {id:'"+id+"'" +extra_properties + "})")
         return
 
+
+    @staticmethod
+    def __delete_dataset(tx, id):
+        result = tx.run("MATCH (d:dataset {id: '"+id+"'})-[:has_template]->(t:template)-[:can_see]->(e:element) detach delete d,t,e")
+        return
         
     @staticmethod
     def __delete_organization(tx, id):
