@@ -1,4 +1,5 @@
 import logging
+from operator import truediv
 from os import stat
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 from neo4j import GraphDatabase
@@ -182,7 +183,6 @@ class _GraphMetaAuth(MetaAuthorize):
             # Fullcreate the fields as well
             for name,id in fields.items():
                 session.write_transaction(self.__write_metadata_field, name, id, template_id)
-
 
     def delete_organization(self, org_id):
         """
@@ -500,6 +500,23 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             return session.read_transaction(self.__read_visible_fields, dataset_id, user_id)
+
+    def is_unrestricted(self, dataset_id):
+        """
+        Checks if a dataset has full public access
+        """
+        with self.driver.session() as session:
+            return session.read_transaction(self.__is_unrestricted, dataset_id)
+
+    @staticmethod
+    def __is_unrestricted(tx, id):
+        records = tx.run("MATCH (:dataset {id:'"+id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role {id:'public'}) return t.name as name")
+        for record in records:
+            if record['name'] == 'Full':
+                return True
+            else:
+                return False
+        return True
 
     def set_dataset_description(self, dataset_id, language, description):
         """ 

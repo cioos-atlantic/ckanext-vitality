@@ -274,17 +274,21 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             return pkg_dict
 
         log.info("This is not before index, filtering")
-        # Description
-        if 'notes' in pkg_dict and pkg_dict['notes']:
-            notes = pkg_dict['notes']
-
         # Decode unicode id...
         dataset_id = pkg_dict['id']
         
         # Check to see if the dataset has just been created
         if(self.meta_authorize.get_dataset(dataset_id) == None):
-            log.info("Dataset not in model yet. Returning")
+            log.info("Dataset not in model. Returning")
             return pkg_dict
+
+        if(self.meta_authorize.is_unrestricted(dataset_id)):
+            log.info("Dataset is unrestricted")
+            return pkg_dict
+
+        # Description
+        if 'notes' in pkg_dict and pkg_dict['notes']:
+            notes = pkg_dict['notes']
 
         # If there is no authed user, user 'public' as the user id.
         user_id = None
@@ -299,7 +303,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         # Load white-listed fields
         visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
-        log.info(pkg_dict['extras'])
         # Load dataset fields
         dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
         # Extra keys are checked here
@@ -369,57 +372,66 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             pkg_dict = search_results['results'][x]
 
             # Loop code is copied from after_show due to pkg_dict similarity
-            # Decode unicode id...
             dataset_id = pkg_dict["id"]
+            log.info(dataset_id)
 
-            # Load dataset fields
-            dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
-            
-            # Load white-listed fields
-            visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
+            if(self.meta_authorize.get_dataset(dataset_id) == None):
+                log.info("Dataset not in model. Returning")
+            elif(self.meta_authorize.is_unrestricted(dataset_id)):
+                log.info("Dataset is unrestricted")
+            else:
+                # Load dataset fields
+                dataset_fields = self.meta_authorize.get_metadata_fields(dataset_id)
+                
+                log.info("retrieved fields")
+                # Load white-listed fields
+                visible_fields = self.meta_authorize.get_visible_fields(dataset_id, user_id)
 
-            # If no relation exists between user and dataset, treat as public
-            if len(visible_fields) == 0:
-                visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
-            
-            # Filter metadata fields
-            filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
+                # If no relation exists between user and dataset, treat as public
+                if len(visible_fields) == 0:
+                    visible_fields = self.meta_authorize.get_visible_fields(dataset_id, 'public')
+                
+                # Filter metadata fields
+                filtered = self.meta_authorize.filter_dict(pkg_dict, dataset_fields, visible_fields)
 
-            # Replace pkg_dict with filtered
-            pkg_dict.clear()
-            for k,v in filtered.items():
-                pkg_dict[k] = v
+                # Replace pkg_dict with filtered
+                pkg_dict.clear()
+                for k,v in filtered.items():
+                    pkg_dict[k] = v
 
-            # Inject public visibility settings
-            pkg_dict['public-visibility'] = self.meta_authorize.get_public_fields(dataset_id)
+                # Inject public visibility settings
+                pkg_dict['public-visibility'] = self.meta_authorize.get_public_fields(dataset_id)
 
-            # Inject empty resources list if resources has been filtered.
-            if 'resources' not in pkg_dict:
-                pkg_dict['resources'] = []
+                # Inject empty resources list if resources has been filtered.
+                if 'resources' not in pkg_dict:
+                    pkg_dict['resources'] = []
 
-            # If the metadata is restricted in any way will add a "resource" so a tag can be generated
-            # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
-            # TODO Find somewhere to add URL back to VITALITY for tag
-            pkg_dict['resources'].append({"format" : "VITALITY"})
+                # If the metadata is restricted in any way will add a "resource" so a tag can be generated
+                # TODO Check if restricted for current user AS WELL AS for public user (so we can harvest in as restricted)
+                # TODO Find somewhere to add URL back to VITALITY for tag
+                pkg_dict['resources'].append({"format" : "VITALITY"})
 
-            """
-            # If current user does not have full access to the metadata, tag the dataset as such
-            user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
-            if(user_dataset_access != "Full"):
-                pkg_dict['resources'].append({"format" : "Restricted metadata"})
-            """
+                """
+                # If current user does not have full access to the metadata, tag the dataset as such
+                user_dataset_access = self.meta_authorize.get_template_access_for_user(dataset_id, user_id)
+                if(user_dataset_access != "Full"):
+                    pkg_dict['resources'].append({"format" : "Restricted metadata"})
+                """
 
-            # Get modified time from Neo4j, harvest will do the comparison
-            #pkg_dict['metadata_modified'] = self.meta_authorize.get_dataset_modified(dataset_id)
-            #Temporary fix to force CKAN to reharvest everytime
-            pkg_dict['metadata_modified'] = datetime.datetime.utcnow().isoformat('T')
+                # Get modified time from Neo4j, harvest will do the comparison
+                #pkg_dict['metadata_modified'] = self.meta_authorize.get_dataset_modified(dataset_id)
+                #TODO Temporary fix to force CKAN to reharvest everytime
+                #pkg_dict['metadata_modified'] = datetime.datetime.utcnow().isoformat('T')
+                if('metadata_modified' in pkg_dict):
+                    log.info(pkg_dict['metadata_modified'])
+                    log.info(datetime.datetime.utcnow().isoformat('T'))
 
-            # Add filler for specific fields with no value present so they can be harvested
-            if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
-                pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
-            if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
-                pkg_dict['xml_location_url'] = '-'
-            log.info("Dataset filtered")
+                # Add filler for specific fields with no value present so they can be harvested
+                if 'notes_translated' not in pkg_dict or not pkg_dict['notes_translated']:
+                    pkg_dict['notes_translated'] = {"fr": "-", "en":"-"}
+                if 'xml_location_url' not in pkg_dict or not pkg_dict['xml_location_url']:
+                    pkg_dict['xml_location_url'] = '-'
+                log.info("Dataset filtered")
         log.info("returning search")
         return search_results
 
