@@ -133,6 +133,9 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         gid = None
         if('gid' in data_dict):
             gid = data_dict['gid']
+        if 'plugin_extras' in data_dict:
+            data_dict['plugin_extras']['vitality'] = {"vitality_gid": gid}
+        else:
             data_dict['plugin_extras'] = {"vitality": {"vitality_gid": gid}}
         result = action(context, data_dict)
         #log.info("A user has been created by %s", context['auth_user_obj'].name)
