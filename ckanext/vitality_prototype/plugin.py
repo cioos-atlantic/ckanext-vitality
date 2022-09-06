@@ -80,7 +80,8 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # Unused right now, but useful for logging
     @toolkit.chained_action
     def user_show(self, action, context, data_dict=None):
-        result = action(context,data_dict)
+        data_dict['include_plugin_extras'] = True
+        result = action(context, data_dict)
         return result
 
     @toolkit.chained_action
@@ -129,12 +130,16 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
 
     @toolkit.chained_action
     def user_create(self, action, context, data_dict=None):
+        gid = None
+        if('gid' in data_dict):
+            gid = data_dict['gid']
+            data_dict['plugin_extras'] = {"vitality": {"vitality_gid": gid}}
         result = action(context, data_dict)
         #log.info("A user has been created by %s", context['auth_user_obj'].name)
         user_id = result['id']
         user_name = result['name']
         user_email = result['email']
-        self.meta_authorize.add_user(user_id, user_name, user_email)
+        self.meta_authorize.add_user(user_id, user_name, user_email, gid)
         if(result['sysadmin']):
             log.info('add to admin role')
             self.meta_authorize.set_user_role(user_id, 'admin')

@@ -13,7 +13,7 @@
 
     {{ form.markdown('about', label=_('About'), id='field-about', value=data.about, error=errors.about, placeholder=_('A little information about yourself')) }}
 
-    {{ form.input('gid', label=_('gid'), id='field-gid', value=data.gid, error=errors.gid, placeholder=_('Used for Vitality Plugin access'), classes=['control-medium']) }}
+    {{ form.input('gid', label=_('gid'), id='field-gid', value=data.plugin_extras.vitality.vitality_gid, error=errors.gid, placeholder=_('Used for Vitality Plugin access'), classes=['control-medium']) }}
 
     {% if show_email_notifications %}
       {% call form.checkbox('activity_streams_email_notifications', label=_('Subscribe to notification emails'), id='field-activity-streams-email-notifications', value=True, checked=g.userobj.activity_streams_email_notifications) %}
