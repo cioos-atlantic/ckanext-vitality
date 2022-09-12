@@ -1323,18 +1323,78 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __set_user_gid(tx, id, gid):
+        """ 
+        Sets the Google ID (gid) of a user with the given id
+        If the user already has a gid it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to set a new Google ID (gid) for
+        gid : string
+            The new Google ID (gid) of the user
+
+        Returns
+        -------
+        None
+        """
         tx.run("MATCH (u:user {id:'"+id+"'}) SET u.gid = '"+"".join([c for c in gid if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
 
     @staticmethod
     def __set_user_username(tx, id, username):
+        """ 
+        Sets the username of a user with the given id
+        If the user already has a username it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to set a new username for
+        username : string
+            The new username of the user
+
+        Returns
+        -------
+        None
+        """
         tx.run("MATCH (u:user {id:'"+id+"'}) SET u.username = '"+"".join([c for c in username if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'") 
 
     @staticmethod
     def __set_user_email(tx, id, email):
+        """ 
+        Sets the email of a user with the given id
+        If the user already has a email it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to set a new email for
+        email : string
+            The new email of the user
+
+        Returns
+        -------
+        None
+        """
         tx.run("MATCH (u:user {id:'"+id+"'}) SET u.email = '"+"".join([c for c in email if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
 
     @staticmethod
     def __bind_fields_to_template(tx, template_id, whitelist):  
+        """ 
+        Adds a list of elements to a template's visibility permissions
+        Deletes all prior visibility relationships the template has
+
+        Parameters
+        ----------
+        template_id : string
+            The id/uuid of the template to set new visibility relationships for
+        whitelist : list[string]
+            A list of element IDs that will be visible to the template
+
+        Returns
+        -------
+        None
+        """
         # First remove all existing 'can_see' relationships between the template, dataset and its elements
         tx.run("MATCH (e:element)<-[c:can_see]-(t:template {id:'"+template_id+"'}) DELETE c")
         for name,id in whitelist.items():
@@ -1343,6 +1403,23 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_dataset_to_org(tx, org_id, dataset_id):
+        """ 
+        Sets the ownership of a dataset to the specified organization
+        If the dataset is already owned by a different organization, deletes the original owner relationship
+            and creates the new one
+
+        Parameters
+        ----------
+        org_id : string
+            The id/uuid of the organization that will become responsible for the dataset
+        dataset_id : string
+            The id/uuid of the dataset that will become owned by the organization
+
+        Returns
+        -------
+        If the specified organization already owns the dataset, returns the id of the relationship
+        Otherwise, returns None
+        """
         # Checks to see if relationship already exists
         records = tx.run("MATCH (o:organization {id:'"+org_id+"'})-[w:owns]->(d:dataset {id:'"+dataset_id+"'}) RETURN w")
         for record in records:
@@ -1354,11 +1431,41 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_role_to_org(tx, role_id, org_id):
+        """ 
+        Sets a role to be associated with an organizaiton
+
+        Parameters
+        ----------
+        role_id : string
+            The id/uuid of the role that will be associated to an organization
+        org_id : string
+            The id/uuid of the organization that will be responsible for the provided role
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:manages_role]->(r)")
         return
 
     @staticmethod
     def __bind_role_to_template(tx, role_id, template_id):
+        """ 
+        Creates a relationship between a role and template so that the role can view elements visible to the template
+        If the role already is associated with a template with the same dataset, the original relationship is deleted and
+            a new one with the provided information is created
+
+        Parameters
+        ----------
+        role_id : string
+            The id/uuid of the role that will have access to the provided template
+        template_id : string
+            The id/uuid of the template that the role will be able to access
+
+        Returns
+        -------
+        None
+        """
         # Check to see if role already is connected to a template from that dataset, if so then delete edge
         # Can use this one without the dataset ID (unique role ids)
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})-[u:uses_template]->(t:template {id:'"+template_id+"'}) RETURN u")
@@ -1370,6 +1477,22 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_template_to_dataset(tx, template_id, dataset_id):
+        """ 
+        Sets a template to be associated with a dataset
+        If the template is already associated with a dataset, deletes the relationship between the original
+            dataset and creates a new ownership with the provided dataset
+
+        Parameters
+        ----------
+        template_id : string
+            The id/uuid of the template that will be associated to the dataset
+        dataset_id : string
+            The id/uuid of the dataset that will be associated to the template
+
+        Returns
+        -------
+        None
+        """
         records = tx.run("MATCH (t:template {id:'"+template_id+"'})<-[h:has_template]-(d:dataset) RETURN h")
         for record in records:
             return
@@ -1379,16 +1502,62 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_user_to_group(tx, group_id, user_id):
+        """ 
+        Sets a user to be associated with a specified group
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will be a member to the group
+        group_id : string
+            The id/uuid of the group that will have the user as a member
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (g:group {id:'"+group_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (g)-[:has_member]->(u)")
         return
 
     @staticmethod
     def __bind_user_to_org(tx, user_id, org_id):
+        """ 
+        Sets a user to be associated with a specified organization
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will serve the provided organization
+        org_id : string
+            The id/uuid of the org that will be managed by the provided user
+
+        Returns
+        -------
+        None
+        """
+        # Not used in CKAN, but needed for Vitality admin form permissions
         tx.run("MATCH (u:user {id:'"+user_id+"'}), (o:organization {id:'"+org_id+"'}) CREATE (u)-[:serves]->(o)")
         return
 
     @staticmethod
     def __bind_user_to_role(tx, user_id, role_id):
+        """ 
+        Sets a user to have access to the provided role
+        If the user already is assigned a role for the organization that manages the role,
+            delete the relationship with the original role and create a new one for the 
+            provided role
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will have access to the role
+        role_id : string
+            The id/uuid of the role that the user will have access to
+
+        Returns
+        -------
+        None
+        """
         # Check if edge already exists
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})<-[h:has_role]-(u:user {id:'"+user_id+"'}) RETURN h")
         for record in records:
@@ -1400,11 +1569,39 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __detach_user_from_role(tx, user_id, role_id):
+        """ 
+        Removes a user's access to a provided role
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will no longer have access to the role
+        role_id : string
+            The id/uuid of the role that the user will no longer have access to
+
+        Returns
+        -------
+        None
+        """
         tx.run("MATCH (r:role {id:'"+role_id+"'})<-[h:has_role]-(u:user {id:'"+user_id+"'}) delete h")
         return
 
     @staticmethod
     def __has_role(tx, user_id, role_id):
+        """ 
+        Checks if a user has access to a specific role
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user to check if they have access to the role
+        role_id : string
+            The id/uuid of the role to check if the user has access to
+
+        Returns
+        -------
+        True if user has access to the role, False if they do not
+        """
         # Checks if user has a specific role
         records = tx.run("MATCH (u:user {id:'"+user_id+"'})-[h:has_role]->(r:role {id:'"+role_id+"'}) RETURN h")
         for record in records:
