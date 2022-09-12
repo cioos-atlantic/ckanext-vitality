@@ -1220,29 +1220,104 @@ class _GraphMetaAuth(MetaAuthorize):
         result = tx.run("CREATE (u:user {id:'"+id+"'" +extra_properties + "})")
         return
 
+    #TODO Might be worth adding a check to see if the deletion objects actually delete/actually exist?
 
     @staticmethod
     def __delete_dataset(tx, id):
+        """ 
+        Deletes the dataset with the matching id as well as its associated templates and elements
+        Deletion also removes any relationships associated with the dataset
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to delete
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (d:dataset {id: '"+id+"'})-[:has_template]->(t:template)-[:can_see]->(e:element) detach delete d,t,e")
         return
         
+    
+    #TODO: Remove member roles for the deleted organization? Or have a purge method for unassigned member roles
     @staticmethod
     def __delete_organization(tx, id):
+        """ 
+        Deletes the organization with the matching id
+        Deletion also removes any relationships associated with the organization
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the organization to delete
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (o:organization {id: '"+id+"'}) detach delete o")
         return
 
     @staticmethod
     def __delete_user(tx, id):
+        """ 
+        Deletes the user with the matching id
+        Deletion also removes any relationships associated with the user
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to delete
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (u:user {id: '"+id+"'}) detach delete u")
         return
 
     @staticmethod
     def __set_dataset_description(tx, id, language, description):
+        """ 
+        Sets the description field of a dataset with the given id
+        The field that stores the description follows the format of description_{language} 
+            e.g. for English the field would become description_en
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to set a description for
+        language : string
+            The language identifier to create a description field for (e.g. en, fr, sp)
+        description : string
+            The description to be added to the dataset
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.description_"+language+"='"+"".join([c for c in description if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
     @staticmethod
     def __set_dataset_name(tx, id, name):
+        """ 
+        Sets the name of a dataset with the given id
+        If the dataset already has a name it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to set a new name for
+        name : string
+            The new name for the dataset
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.name='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
