@@ -952,6 +952,8 @@ class _GraphMetaAuth(MetaAuthorize):
         A dictionary of roles with the role name as the key and role id as the value.
         """
         result = {}
+        # TODO This case is unused but may break if all roles are returned as many will share names
+        # Possible to make a dictionary on the higher level to return per organization?
         if(org_id==None):
             for record in tx.run("MATCH (r:role) RETURN r.name AS name, r.id AS id"):
                 result[record['name']] = record['id']
@@ -962,7 +964,22 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_templates(tx, dataset_id=None):
+        
+        """ 
+        Returns all templates in the database or templates related to a dataset if an id is provided
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to retrieve templates from (optional)
+
+        Returns
+        -------
+        A dictionary of templates with the template name as the key and template id as the value.
+        """
         result = {}
+        # TODO This case is unused but may break if all templates are returned as many will share names
+        # Possible to make a dictionary on the higher level to return per dataset?
         if(dataset_id==None):
             for record in tx.run("MATCH (t:template) RETURN t.name AS name, t.id AS id"):
                 result[record['name']] = record['id']
@@ -973,6 +990,13 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_users(tx):
+        """ 
+        Returns all users in the database
+
+        Returns
+        -------
+        A list of all user ids in the database
+        """
         result = []
         for record in tx.run("MATCH (u:user) RETURN u.id as id"):
             result.append(record['id'])
@@ -980,6 +1004,13 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_users_admins(tx):
+        """ 
+        Returns all CKAN sysadmin users in the database
+
+        Returns
+        -------
+        A list of all user ids for CKAN sysadmins in the database
+        """
         result = []
         for record in tx.run("MATCH (:role {id:'admin'})<-[:has_role]-(u:user) return u.id AS id"):
             result.append(record['id'])
@@ -987,6 +1018,20 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_visible_fields(tx, dataset_id, user_id):
+        """ 
+        Returns a list of all fields in a dataset that are accessible for the provided user
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check visible fields for
+        user_id : string
+            The id/uuid of the user to check permissions for
+
+        Returns
+        -------
+        A list of element IDs that the user has access to
+        """
         result = []
         for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:has_role]->(r:role)-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id"):
             result.append(record['id'])
@@ -994,6 +1039,20 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_dataset(tx,id,dname=None):
+        """ 
+        Creates a dataset with the provided ID and name
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created dataset
+        dname : string
+            The name of the newly created dataset (optional)
+
+        Returns
+        -------
+        None
+        """
         if dname != None:
             # Create a safe dataset name if one is passed
             # https://stackoverflow.com/questions/7406102/create-sane-safe-filename-from-any-unsafe-string
@@ -1004,11 +1063,42 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_group(tx, id):
+        """ 
+        Creates a group with the provided ID
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created group
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("CREATE (g:group {id:'"+id+"'})")
         return
 
     @staticmethod
     def __write_metadata_field(tx, name, id, template_id):
+        """ 
+        Creates a metadata field/element with the provided ID and name and attached to the template_id
+        The template_id provided should be the full template id for the dataset, as it is required to
+            be linked to all metadata elements of the dataset and will keep a permanant link between the element and dataset
+            as it cannot be erroneously deleted due to future template changes
+
+        Parameters
+        ----------
+        name : string
+            The name of the newly created element
+        id : string
+            The id/uuid of the newly created element
+        template_id : string
+            The id/uuid of the full template for the dataset that the element will be linked to
+
+        Returns
+        -------
+        None
+        """
         if name in constants.MINIMUM_FIELDS:
             result = tx.run("MATCH (t:template {id:'"+template_id+"'}) CREATE (t)-[:can_see]->(:element {name:'"+name+"',id:'"+id+"',required:true})")
         else:
@@ -1017,6 +1107,20 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_org(tx, id, org_name=None):
+        """ 
+        Creates an organization with the provided ID and name
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created organization
+        org_name : string
+            The name of the newly created organization (optional)
+
+        Returns
+        -------
+        None
+        """
         if org_name != None:
             result = tx.run("CREATE (o:organization {id:'"+id+"', name:'"+str(org_name)+"'})")
         else:
@@ -1025,6 +1129,21 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_role(tx, id, name=None):
+        """ 
+        Creates a role with the provided ID and name
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created role
+        name : string
+            The name of the newly created role (optional)
+
+        Returns
+        -------
+        If the role id already exists, return the role id
+        If the role does not already exist, returns None
+        """
         records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
         for record in records:
             return record['id']
@@ -1036,6 +1155,23 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_template(tx, id, name=None, description = None):
+        """ 
+        Creates a template with the provided ID, name, and description
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created template
+        name : string
+            The name of the newly created template (optional)
+        description : string
+            A description of the newly created template
+
+        Returns
+        -------
+        If the template id already exists, returns the template id
+        If the template does not exist, returns None
+        """
         records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id AS id")
         for record in records:
             return record['id']
