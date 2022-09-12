@@ -117,7 +117,7 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__write_role, id, name)
 
-    def add_user(self, user_id, user_name = None, user_email = None):
+    def add_user(self, user_id, user_name = None, user_email = None, gid = None):
         """
         Adds new user into the database. If a user with that id already exists they will not be added
         
@@ -129,12 +129,14 @@ class _GraphMetaAuth(MetaAuthorize):
             The username of the new user
         user_email : string
             The email of the new user
+        gid : string
+            The Google id of the new user
         """
         with self.driver.session() as session:
             # Check to see if the user already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_user_by_id, user_id) != None:
                 return
-            session.write_transaction(self.__write_user, user_id, user_name, user_email)
+            session.write_transaction(self.__write_user, user_id, user_name, user_email, gid)
 
     def add_template(self, dataset_id, template_id, template_name=None, template_description=None):
         """
@@ -1184,12 +1186,14 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
-    def __write_user(tx, id, username= None, email= None):
+    def __write_user(tx, id, username= None, email= None, gid = None):
         extra_properties = ""
         if(username):
             extra_properties += ", username: '" + username + "'"
         if(email):
             extra_properties += ", email: '" + email +"'"
+        if(gid):
+            extra_properties += ", gid: '" + gid + "'"
         result = tx.run("CREATE (u:user {id:'"+id+"'" +extra_properties + "})")
         return
 

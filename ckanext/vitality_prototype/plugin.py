@@ -71,8 +71,18 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             "user_delete" : self.user_delete,
             "package_update" : self.package_update,
             "package_create" : self.package_create,
-            "package_delete" : self.package_delete
+            "package_delete" : self.package_delete,
+            "user_show" : self.user_show
         }
+
+        
+
+    # Unused right now, but useful for logging
+    @toolkit.chained_action
+    def user_show(self, action, context, data_dict=None):
+        data_dict['include_plugin_extras'] = True
+        result = action(context, data_dict)
+        return result
 
     @toolkit.chained_action
     def organization_member_create(self, action, context, data_dict=None):
@@ -112,16 +122,27 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         if(data_dict['email'] != neo4j_user_info['email']):
             log.info("Email has been updated")
             self.meta_authorize.set_user_email(ckan_user_info['id'], data_dict['email'])
+        if('gid' in data_dict):
+            gid = data_dict['gid']
+            data_dict['plugin_extras'] = {"vitality": {"vitality_gid": gid}}
+            self.meta_authorize.set_user_gid(ckan_user_info['id'], gid)
         return action(context, data_dict)
 
     @toolkit.chained_action
     def user_create(self, action, context, data_dict=None):
+        gid = None
+        if('gid' in data_dict):
+            gid = data_dict['gid']
+        if 'plugin_extras' in data_dict:
+            data_dict['plugin_extras']['vitality'] = {"vitality_gid": gid}
+        else:
+            data_dict['plugin_extras'] = {"vitality": {"vitality_gid": gid}}
         result = action(context, data_dict)
         #log.info("A user has been created by %s", context['auth_user_obj'].name)
         user_id = result['id']
         user_name = result['name']
         user_email = result['email']
-        self.meta_authorize.add_user(user_id, user_name, user_email)
+        self.meta_authorize.add_user(user_id, user_name, user_email, gid)
         if(result['sysadmin']):
             log.info('add to admin role')
             self.meta_authorize.set_user_role(user_id, 'admin')
