@@ -1187,6 +1187,29 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_user(tx, id, username= None, email= None, gid = None):
+        """ 
+        Creates a user with the provided ID, username, email, and Google ID (gid).
+        gid is required for the user to access the VITALITY API/Admin Form
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created user
+        username : string
+            The username of the newly created user in CKAN (optional)
+        email : string
+            The email of the newly created user (optional)
+        gid : string
+            The Google ID (gid) of the newly created user (optional)
+
+        Returns
+        -------
+        If the user id already exists, returns the template user
+        If the user does not exist, returns None
+        """
+        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id AS id")
+        for record in records:
+            return record['id']
         extra_properties = ""
         if(username):
             extra_properties += ", username: '" + username + "'"
