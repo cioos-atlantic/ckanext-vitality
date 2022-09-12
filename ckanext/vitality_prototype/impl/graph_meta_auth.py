@@ -1322,8 +1322,8 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
-    def __set_user_gid(tx, user_id, gid):
-        tx.run("MATCH (u:user {id:'"+user_id+"'}) SET u.gid = '"+"".join([c for c in gid if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
+    def __set_user_gid(tx, id, gid):
+        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.gid = '"+"".join([c for c in gid if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
 
     @staticmethod
     def __set_user_username(tx, id, username):
