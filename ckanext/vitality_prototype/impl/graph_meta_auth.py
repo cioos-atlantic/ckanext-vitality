@@ -670,21 +670,6 @@ class _GraphMetaAuth(MetaAuthorize):
 
 
     @staticmethod
-    def __set_organization_name(tx, id, name):
-        """ 
-        Runs a query to set the name of a given organization
-
-        Parameters
-        ----------
-        id : string
-            The id/uuid of the organization in the database
-        name : string
-            The value to set the 'name' field to
-        """
-        records = tx.run("MATCH (o:organization {id:'"+id+"'}) set o.name ='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
-        return
-
-    @staticmethod
     def __get_dataset(tx, id):
         """ 
         Runs a query to return a dataset's ID if it exists in the database
@@ -1377,6 +1362,22 @@ class _GraphMetaAuth(MetaAuthorize):
         None
         """
         tx.run("MATCH (u:user {id:'"+id+"'}) SET u.email = '"+"".join([c for c in email if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
+
+
+    @staticmethod
+    def __set_organization_name(tx, id, name):
+        """ 
+        Runs a query to set the name of a given organization
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the organization in the database
+        name : string
+            The value to set the 'name' field to
+        """
+        records = tx.run("MATCH (o:organization {id:'"+id+"'}) set o.name ='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
+        return
 
     @staticmethod
     def __bind_fields_to_template(tx, template_id, whitelist):  
