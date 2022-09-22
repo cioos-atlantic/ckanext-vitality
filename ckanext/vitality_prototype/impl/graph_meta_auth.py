@@ -1,6 +1,7 @@
 import logging
 from operator import truediv
 from os import stat
+from re import template
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 from neo4j import GraphDatabase
 import uuid 
@@ -668,6 +669,23 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__set_organization_name, org_id, org_name)
 
+    def set_full_access_to_datasets(self, role_id):
+        """ 
+        Sets the template access to 'Full' for the given role for all datasets
+
+        Parameters
+        ----------
+        role_id : string
+            The id/uuid of the role in the database
+        """
+        with self.driver.session() as session:
+            # Get all datasets
+            # Get their full template
+            # For each template
+            templates = session.read_transaction(self.__read_all_templates, "Full")
+            for template in templates:
+                session.write_transaction(self.__bind_role_to_template, role_id, template)
+
 
     @staticmethod
     def __get_dataset(tx, id):
@@ -950,7 +968,7 @@ class _GraphMetaAuth(MetaAuthorize):
         return result
 
     @staticmethod
-    def __read_templates(tx, dataset_id=None):
+    def __read_templates(tx, dataset_id):
         
         """ 
         Returns all templates in the database or templates related to a dataset if an id is provided
@@ -965,15 +983,35 @@ class _GraphMetaAuth(MetaAuthorize):
         A dictionary of templates with the template name as the key and template id as the value.
         """
         result = {}
+        for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t.name AS name, t.id AS id"):
+            result[record['name']] = record['id']
+        return result
+
+    @staticmethod
+    def __read_all_templates(tx, template_name=None):
+        
+        """ 
+        Returns all templates in the database
+
+        Parameters
+        ----------
+        template_name : string
+            The name of the templates to return (optional)
+
+        Returns
+        -------
+        A list of template IDs (String)
+        """
         # TODO This case is unused but may break if all templates are returned as many will share names
         # Possible to make a dictionary on the higher level to return per dataset?
-        if(dataset_id==None):
-            for record in tx.run("MATCH (t:template) RETURN t.name AS name, t.id AS id"):
-                result[record['name']] = record['id']
+        results = []
+        if (template_name==None):
+            for record in tx.run("MATCH (t:template) RETURN t.id AS id"):
+                results.append(record['id'])
         else:
-            for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t.name AS name, t.id AS id"):
-                result[record['name']] = record['id']
-        return result
+            for record in tx.run("MATCH (t:template {name:'" + template_name + "'}) RETURN t.id AS id"):
+                results.append(record['id'])
+        return results
 
     @staticmethod
     def __read_users(tx):
