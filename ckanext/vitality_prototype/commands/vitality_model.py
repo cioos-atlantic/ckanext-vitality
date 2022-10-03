@@ -125,28 +125,30 @@ class VitalityModel(CkanCommand):
 
         user_list = get_action('user_list')(context,{})
         print("Got {} users".format(len(user_list)))
+        print(user_list)
         for u in user_list:
-            print(u)
+            print(u.decode('utf-8'))
 
             user_id = u['id'].decode('utf-8')
             user_name = u['name'].decode('utf-8')
             user_email = ""
+            gid = ""
 
             # Email not required, so check if it exists first
             if(u['email']):
                 user_email = u['email'].decode('utf-8')
-            self.meta_authorize.add_user(user_id, user_name, user_email)
+            self.meta_authorize.add_user(user_id, user_name, user_email,gid)
 
             # Admins in CKAN are marked as such
             if u['sysadmin']:
                 self.meta_authorize.set_user_role(user_id, 'admin')
 
-            # TODO Figure out a better way to set GIDs?
-            self.meta_authorize.set_user_gid(user_id, "guest")
-
         # Create the public user & role for people not logged in.
         self.meta_authorize.add_user('public', 'Public')
         self.meta_authorize.set_user_role('public', 'public')
+
+    def set_all_datasets_public(self, context):
+        self.meta_authorize.set_full_access_to_datasets("public")
 
     def _load_config(self):
         super(VitalityModel, self)._load_config()

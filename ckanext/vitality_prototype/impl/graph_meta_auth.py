@@ -1,5 +1,7 @@
 import logging
+from operator import truediv
 from os import stat
+from re import template
 from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
 from neo4j import GraphDatabase
 import uuid 
@@ -116,7 +118,7 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__write_role, id, name)
 
-    def add_user(self, user_id, user_name = None, user_email = None):
+    def add_user(self, user_id, user_name = None, user_email = None, gid = None):
         """
         Adds new user into the database. If a user with that id already exists they will not be added
         
@@ -128,12 +130,14 @@ class _GraphMetaAuth(MetaAuthorize):
             The username of the new user
         user_email : string
             The email of the new user
+        gid : string
+            The Google id of the new user
         """
         with self.driver.session() as session:
             # Check to see if the user already exists, if so we're done as we don't want to create duplicates.
             if session.read_transaction(self.__get_user_by_id, user_id) != None:
                 return
-            session.write_transaction(self.__write_user, user_id, user_name, user_email)
+            session.write_transaction(self.__write_user, user_id, user_name, user_email, gid)
 
     def add_template(self, dataset_id, template_id, template_name=None, template_description=None):
         """
@@ -183,6 +187,18 @@ class _GraphMetaAuth(MetaAuthorize):
             for name,id in fields.items():
                 session.write_transaction(self.__write_metadata_field, name, id, template_id)
 
+    def delete_dataset(self, dataset_id):
+        """
+        Deletes an dataset given its ID
+        Also removes associated templates and elements
+        
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of dataset to delete
+        """
+        with self.driver.session() as session:
+            session.write_transaction(self.__delete_dataset, dataset_id)
 
     def delete_organization(self, org_id):
         """
@@ -252,7 +268,7 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             return session.read_transaction(self.__get_dataset, dataset_id)
-            
+
     def get_metadata_fields(self, dataset_id):
         """ 
         Returns the elements managed by a dataset
@@ -476,6 +492,40 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             return session.read_transaction(self.__read_visible_fields, dataset_id, user_id)
 
+    def is_unrestricted(self, dataset_id):
+        """ 
+        Checks if a dataset has 'Full' template access for the public users
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check
+
+        Returns
+        -------
+        True if the template name of the public role is set to 'Full', False otherwise
+        """
+        with self.driver.session() as session:
+            return session.read_transaction(self.__is_unrestricted_for_user, dataset_id, 'public')
+    
+    def is_unrestricted_for_user(self, dataset_id, user_id):
+        """ 
+        Checks if a dataset has 'Full' template access for a given user
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check
+        user_id : string
+            The id/uuid of the user to check access for
+
+        Returns
+        -------
+        True if the template name of the user's role is set to 'Full', False otherwise
+        """
+        with self.driver.session() as session:
+            return session.read_transaction(self.__is_unrestricted_for_user, dataset_id, user_id)
+
     def set_dataset_description(self, dataset_id, language, description):
         """ 
         Sets a description for a dataset in a given language
@@ -505,7 +555,7 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             session.write_transaction(self.__set_dataset_name, dataset_id, dataset_name)
-
+            
     def set_template_access(self, role_id, template_id):
         """ 
         Sets a 'uses_template' relationship between a given role and template for a dataset
@@ -619,21 +669,23 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__set_organization_name, org_id, org_name)
 
-
-    @staticmethod
-    def __set_organization_name(tx, id, name):
+    def set_full_access_to_datasets(self, role_id):
         """ 
-        Runs a query to set the name of a given organization
+        Sets the template access to 'Full' for the given role for all datasets
 
         Parameters
         ----------
-        id : string
-            The id/uuid of the organization in the database
-        name : string
-            The value to set the 'name' field to
+        role_id : string
+            The id/uuid of the role in the database
         """
-        records = tx.run("MATCH (o:organization {id:'"+id+"'}) set o.name ='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
-        return
+        with self.driver.session() as session:
+            # Get all datasets
+            # Get their full template
+            # For each template
+            templates = session.read_transaction(self.__read_all_templates, "Full")
+            for template in templates:
+                session.write_transaction(self.__bind_role_to_template, role_id, template)
+
 
     @staticmethod
     def __get_dataset(tx, id):
@@ -848,6 +900,30 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
+    def __is_unrestricted_for_user(tx, dataset_id, user_id):
+        """ 
+        Runs a query to check if the given user has full access to the dataset
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check
+        id : string
+            The id/uuid of the user to check access for
+
+        Returns
+        -------
+        True if the template access is named 'Full' and false if template access is any other form
+        """
+        records = tx.run("MATCH (:dataset {id:'"+dataset_id+"'})-[:has_template]->(t:template)<-[:uses_template]-(:role)<-[:has_role]-(:user {id:'"+user_id+"'}) return t.name as name")
+        for record in records:
+            if record['name'] == 'Full':
+                return True
+            else:
+                return False
+        return True
+
+    @staticmethod
     def __read_elements(tx, dataset_id):
         """ 
         Runs a query to retrieve all elements associated with a provided dataset
@@ -881,6 +957,8 @@ class _GraphMetaAuth(MetaAuthorize):
         A dictionary of roles with the role name as the key and role id as the value.
         """
         result = {}
+        # TODO This case is unused but may break if all roles are returned as many will share names
+        # Possible to make a dictionary on the higher level to return per organization?
         if(org_id==None):
             for record in tx.run("MATCH (r:role) RETURN r.name AS name, r.id AS id"):
                 result[record['name']] = record['id']
@@ -890,18 +968,60 @@ class _GraphMetaAuth(MetaAuthorize):
         return result
 
     @staticmethod
-    def __read_templates(tx, dataset_id=None):
+    def __read_templates(tx, dataset_id):
+        
+        """ 
+        Returns all templates in the database or templates related to a dataset if an id is provided
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to retrieve templates from (optional)
+
+        Returns
+        -------
+        A dictionary of templates with the template name as the key and template id as the value.
+        """
         result = {}
-        if(dataset_id==None):
-            for record in tx.run("MATCH (t:template) RETURN t.name AS name, t.id AS id"):
-                result[record['name']] = record['id']
-        else:
-            for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t.name AS name, t.id AS id"):
-                result[record['name']] = record['id']
+        for record in tx.run("MATCH (t:template)<-[:has_template]-(d:dataset {id:'"+ dataset_id +"'}) RETURN t.name AS name, t.id AS id"):
+            result[record['name']] = record['id']
         return result
 
     @staticmethod
+    def __read_all_templates(tx, template_name=None):
+        
+        """ 
+        Returns all templates in the database
+
+        Parameters
+        ----------
+        template_name : string
+            The name of the templates to return (optional)
+
+        Returns
+        -------
+        A list of template IDs (String)
+        """
+        # TODO This case is unused but may break if all templates are returned as many will share names
+        # Possible to make a dictionary on the higher level to return per dataset?
+        results = []
+        if (template_name==None):
+            for record in tx.run("MATCH (t:template) RETURN t.id AS id"):
+                results.append(record['id'])
+        else:
+            for record in tx.run("MATCH (t:template {name:'" + template_name + "'}) RETURN t.id AS id"):
+                results.append(record['id'])
+        return results
+
+    @staticmethod
     def __read_users(tx):
+        """ 
+        Returns all users in the database
+
+        Returns
+        -------
+        A list of all user ids in the database
+        """
         result = []
         for record in tx.run("MATCH (u:user) RETURN u.id as id"):
             result.append(record['id'])
@@ -909,6 +1029,13 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_users_admins(tx):
+        """ 
+        Returns all CKAN sysadmin users in the database
+
+        Returns
+        -------
+        A list of all user ids for CKAN sysadmins in the database
+        """
         result = []
         for record in tx.run("MATCH (:role {id:'admin'})<-[:has_role]-(u:user) return u.id AS id"):
             result.append(record['id'])
@@ -916,6 +1043,20 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __read_visible_fields(tx, dataset_id, user_id):
+        """ 
+        Returns a list of all fields in a dataset that are accessible for the provided user
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset to check visible fields for
+        user_id : string
+            The id/uuid of the user to check permissions for
+
+        Returns
+        -------
+        A list of element IDs that the user has access to
+        """
         result = []
         for record in tx.run("MATCH (u:user {id:'"+user_id+"'})-[:has_role]->(r:role)-[:uses_template]->(t:template)<-[:has_template]-(d:dataset {id:'"+dataset_id+"'}), (t)-[:can_see]->(e:element) return e.id AS id"):
             result.append(record['id'])
@@ -923,6 +1064,20 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_dataset(tx,id,dname=None):
+        """ 
+        Creates a dataset with the provided ID and name
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created dataset
+        dname : string
+            The name of the newly created dataset (optional)
+
+        Returns
+        -------
+        None
+        """
         if dname != None:
             # Create a safe dataset name if one is passed
             # https://stackoverflow.com/questions/7406102/create-sane-safe-filename-from-any-unsafe-string
@@ -933,11 +1088,42 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_group(tx, id):
+        """ 
+        Creates a group with the provided ID
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created group
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("CREATE (g:group {id:'"+id+"'})")
         return
 
     @staticmethod
     def __write_metadata_field(tx, name, id, template_id):
+        """ 
+        Creates a metadata field/element with the provided ID and name and attached to the template_id
+        The template_id provided should be the full template id for the dataset, as it is required to
+            be linked to all metadata elements of the dataset and will keep a permanant link between the element and dataset
+            as it cannot be erroneously deleted due to future template changes
+
+        Parameters
+        ----------
+        name : string
+            The name of the newly created element
+        id : string
+            The id/uuid of the newly created element
+        template_id : string
+            The id/uuid of the full template for the dataset that the element will be linked to
+
+        Returns
+        -------
+        None
+        """
         if name in constants.MINIMUM_FIELDS:
             result = tx.run("MATCH (t:template {id:'"+template_id+"'}) CREATE (t)-[:can_see]->(:element {name:'"+name+"',id:'"+id+"',required:true})")
         else:
@@ -946,6 +1132,20 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_org(tx, id, org_name=None):
+        """ 
+        Creates an organization with the provided ID and name
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created organization
+        org_name : string
+            The name of the newly created organization (optional)
+
+        Returns
+        -------
+        None
+        """
         if org_name != None:
             result = tx.run("CREATE (o:organization {id:'"+id+"', name:'"+str(org_name)+"'})")
         else:
@@ -954,6 +1154,21 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_role(tx, id, name=None):
+        """ 
+        Creates a role with the provided ID and name
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created role
+        name : string
+            The name of the newly created role (optional)
+
+        Returns
+        -------
+        If the role id already exists, return the role id
+        If the role does not already exist, returns None
+        """
         records = tx.run("MATCH (r:role {id:'"+id+"'}) return r.id as id")
         for record in records:
             return record['id']
@@ -965,6 +1180,23 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __write_template(tx, id, name=None, description = None):
+        """ 
+        Creates a template with the provided ID, name, and description
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created template
+        name : string
+            The name of the newly created template (optional)
+        description : string
+            A description of the newly created template
+
+        Returns
+        -------
+        If the template id already exists, returns the template id
+        If the template does not exist, returns None
+        """
         records = tx.run("MATCH (t:template {id:'"+id+"'}) return t.id AS id")
         for record in records:
             return record['id']
@@ -977,50 +1209,231 @@ class _GraphMetaAuth(MetaAuthorize):
         return None
 
     @staticmethod
-    def __write_user(tx, id, username= None, email= None):
+    def __write_user(tx, id, username= None, email= None, gid = None):
+        """ 
+        Creates a user with the provided ID, username, email, and Google ID (gid).
+        gid is required for the user to access the VITALITY API/Admin Form
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the newly created user
+        username : string
+            The username of the newly created user in CKAN (optional)
+        email : string
+            The email of the newly created user (optional)
+        gid : string
+            The Google ID (gid) of the newly created user (optional)
+
+        Returns
+        -------
+        If the user id already exists, returns the template user
+        If the user does not exist, returns None
+        """
+        records = tx.run("MATCH (u:user {id:'"+id+"'}) return u.id AS id")
+        for record in records:
+            return record['id']
         extra_properties = ""
         if(username):
             extra_properties += ", username: '" + username + "'"
         if(email):
             extra_properties += ", email: '" + email +"'"
+        if(gid):
+            extra_properties += ", gid: '" + gid + "'"
         result = tx.run("CREATE (u:user {id:'"+id+"'" +extra_properties + "})")
         return
 
+    #TODO Might be worth adding a check to see if the deletion objects actually delete/actually exist?
+
+    @staticmethod
+    def __delete_dataset(tx, id):
+        """ 
+        Deletes the dataset with the matching id as well as its associated templates and elements
+        Deletion also removes any relationships associated with the dataset
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to delete
+
+        Returns
+        -------
+        None
+        """
+        result = tx.run("MATCH (d:dataset {id: '"+id+"'})-[:has_template]->(t:template)-[:can_see]->(e:element) detach delete d,t,e")
+        return
         
+    
+    #TODO: Remove member roles for the deleted organization? Or have a purge method for unassigned member roles
     @staticmethod
     def __delete_organization(tx, id):
+        """ 
+        Deletes the organization with the matching id
+        Deletion also removes any relationships associated with the organization
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the organization to delete
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (o:organization {id: '"+id+"'}) detach delete o")
         return
 
     @staticmethod
     def __delete_user(tx, id):
+        """ 
+        Deletes the user with the matching id
+        Deletion also removes any relationships associated with the user
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to delete
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (u:user {id: '"+id+"'}) detach delete u")
         return
 
     @staticmethod
     def __set_dataset_description(tx, id, language, description):
+        """ 
+        Sets the description field of a dataset with the given id
+        The field that stores the description follows the format of description_{language} 
+            e.g. for English the field would become description_en
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to set a description for
+        language : string
+            The language identifier to create a description field for (e.g. en, fr, sp)
+        description : string
+            The description to be added to the dataset
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.description_"+language+"='"+"".join([c for c in description if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
     @staticmethod
     def __set_dataset_name(tx, id, name):
+        """ 
+        Sets the name of a dataset with the given id
+        If the dataset already has a name it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to set a new name for
+        name : string
+            The new name for the dataset
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (d:dataset {id: '"+id+"'}) set d.name='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
         return
 
     @staticmethod
-    def __set_user_gid(tx, user_id, gid):
-        tx.run("MATCH (u:user {id:'"+user_id+"'}) SET u.gid = '"+"".join([c for c in gid if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
+    def __set_user_gid(tx, id, gid):
+        """ 
+        Sets the Google ID (gid) of a user with the given id
+        If the user already has a gid it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to set a new Google ID (gid) for
+        gid : string
+            The new Google ID (gid) of the user
+
+        Returns
+        -------
+        None
+        """
+        tx.run("MATCH (u:user {id:'"+id+"'}) SET u.gid = '"+"".join([c for c in gid if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
 
     @staticmethod
     def __set_user_username(tx, id, username):
+        """ 
+        Sets the username of a user with the given id
+        If the user already has a username it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to set a new username for
+        username : string
+            The new username of the user
+
+        Returns
+        -------
+        None
+        """
         tx.run("MATCH (u:user {id:'"+id+"'}) SET u.username = '"+"".join([c for c in username if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'") 
 
     @staticmethod
     def __set_user_email(tx, id, email):
+        """ 
+        Sets the email of a user with the given id
+        If the user already has a email it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the user to set a new email for
+        email : string
+            The new email of the user
+
+        Returns
+        -------
+        None
+        """
         tx.run("MATCH (u:user {id:'"+id+"'}) SET u.email = '"+"".join([c for c in email if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")   
+
+
+    @staticmethod
+    def __set_organization_name(tx, id, name):
+        """ 
+        Runs a query to set the name of a given organization
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the organization in the database
+        name : string
+            The value to set the 'name' field to
+        """
+        records = tx.run("MATCH (o:organization {id:'"+id+"'}) set o.name ='"+"".join([c for c in name if c.isalpha() or c.isdigit() or c==' ']).rstrip()+"'")
+        return
 
     @staticmethod
     def __bind_fields_to_template(tx, template_id, whitelist):  
+        """ 
+        Adds a list of elements to a template's visibility permissions
+        Deletes all prior visibility relationships the template has
+
+        Parameters
+        ----------
+        template_id : string
+            The id/uuid of the template to set new visibility relationships for
+        whitelist : list[string]
+            A list of element IDs that will be visible to the template
+
+        Returns
+        -------
+        None
+        """
         # First remove all existing 'can_see' relationships between the template, dataset and its elements
         tx.run("MATCH (e:element)<-[c:can_see]-(t:template {id:'"+template_id+"'}) DELETE c")
         for name,id in whitelist.items():
@@ -1029,6 +1442,23 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_dataset_to_org(tx, org_id, dataset_id):
+        """ 
+        Sets the ownership of a dataset to the specified organization
+        If the dataset is already owned by a different organization, deletes the original owner relationship
+            and creates the new one
+
+        Parameters
+        ----------
+        org_id : string
+            The id/uuid of the organization that will become responsible for the dataset
+        dataset_id : string
+            The id/uuid of the dataset that will become owned by the organization
+
+        Returns
+        -------
+        If the specified organization already owns the dataset, returns the id of the relationship
+        Otherwise, returns None
+        """
         # Checks to see if relationship already exists
         records = tx.run("MATCH (o:organization {id:'"+org_id+"'})-[w:owns]->(d:dataset {id:'"+dataset_id+"'}) RETURN w")
         for record in records:
@@ -1040,11 +1470,41 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_role_to_org(tx, role_id, org_id):
+        """ 
+        Sets a role to be associated with an organizaiton
+
+        Parameters
+        ----------
+        role_id : string
+            The id/uuid of the role that will be associated to an organization
+        org_id : string
+            The id/uuid of the organization that will be responsible for the provided role
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (o:organization {id:'"+org_id+"'}), (r:role {id:'"+role_id+"'}) CREATE (o)-[:manages_role]->(r)")
         return
 
     @staticmethod
     def __bind_role_to_template(tx, role_id, template_id):
+        """ 
+        Creates a relationship between a role and template so that the role can view elements visible to the template
+        If the role already is associated with a template with the same dataset, the original relationship is deleted and
+            a new one with the provided information is created
+
+        Parameters
+        ----------
+        role_id : string
+            The id/uuid of the role that will have access to the provided template
+        template_id : string
+            The id/uuid of the template that the role will be able to access
+
+        Returns
+        -------
+        None
+        """
         # Check to see if role already is connected to a template from that dataset, if so then delete edge
         # Can use this one without the dataset ID (unique role ids)
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})-[u:uses_template]->(t:template {id:'"+template_id+"'}) RETURN u")
@@ -1056,6 +1516,22 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_template_to_dataset(tx, template_id, dataset_id):
+        """ 
+        Sets a template to be associated with a dataset
+        If the template is already associated with a dataset, deletes the relationship between the original
+            dataset and creates a new ownership with the provided dataset
+
+        Parameters
+        ----------
+        template_id : string
+            The id/uuid of the template that will be associated to the dataset
+        dataset_id : string
+            The id/uuid of the dataset that will be associated to the template
+
+        Returns
+        -------
+        None
+        """
         records = tx.run("MATCH (t:template {id:'"+template_id+"'})<-[h:has_template]-(d:dataset) RETURN h")
         for record in records:
             return
@@ -1065,16 +1541,62 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __bind_user_to_group(tx, group_id, user_id):
+        """ 
+        Sets a user to be associated with a specified group
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will be a member to the group
+        group_id : string
+            The id/uuid of the group that will have the user as a member
+
+        Returns
+        -------
+        None
+        """
         result = tx.run("MATCH (g:group {id:'"+group_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (g)-[:has_member]->(u)")
         return
 
     @staticmethod
     def __bind_user_to_org(tx, user_id, org_id):
+        """ 
+        Sets a user to be associated with a specified organization
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will serve the provided organization
+        org_id : string
+            The id/uuid of the org that will be managed by the provided user
+
+        Returns
+        -------
+        None
+        """
+        # Not used in CKAN, but needed for Vitality admin form permissions
         tx.run("MATCH (u:user {id:'"+user_id+"'}), (o:organization {id:'"+org_id+"'}) CREATE (u)-[:serves]->(o)")
         return
 
     @staticmethod
     def __bind_user_to_role(tx, user_id, role_id):
+        """ 
+        Sets a user to have access to the provided role
+        If the user already is assigned a role for the organization that manages the role,
+            delete the relationship with the original role and create a new one for the 
+            provided role
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will have access to the role
+        role_id : string
+            The id/uuid of the role that the user will have access to
+
+        Returns
+        -------
+        None
+        """
         # Check if edge already exists
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})<-[h:has_role]-(u:user {id:'"+user_id+"'}) RETURN h")
         for record in records:
@@ -1086,11 +1608,39 @@ class _GraphMetaAuth(MetaAuthorize):
 
     @staticmethod
     def __detach_user_from_role(tx, user_id, role_id):
+        """ 
+        Removes a user's access to a provided role
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user that will no longer have access to the role
+        role_id : string
+            The id/uuid of the role that the user will no longer have access to
+
+        Returns
+        -------
+        None
+        """
         tx.run("MATCH (r:role {id:'"+role_id+"'})<-[h:has_role]-(u:user {id:'"+user_id+"'}) delete h")
         return
 
     @staticmethod
     def __has_role(tx, user_id, role_id):
+        """ 
+        Checks if a user has access to a specific role
+
+        Parameters
+        ----------
+        user_id : string
+            The id/uuid of the user to check if they have access to the role
+        role_id : string
+            The id/uuid of the role to check if the user has access to
+
+        Returns
+        -------
+        True if user has access to the role, False if they do not
+        """
         # Checks if user has a specific role
         records = tx.run("MATCH (u:user {id:'"+user_id+"'})-[h:has_role]->(r:role {id:'"+role_id+"'}) RETURN h")
         for record in records:

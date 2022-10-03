@@ -121,6 +121,7 @@ def seed_groups(ctx):
         ctx.obj['meta_authorize'].add_group(g['id'].decode('utf-8'), g['users'])
     return
 
+
 @vitality.command()
 @click.pass_context
 def seed_orgs(ctx):
@@ -136,4 +137,10 @@ def seed_orgs(ctx):
         for admin in admin_list:
             ctx.obj['meta_authorize'].set_admin_form_access(admin, o['id'])
         continue
+    return
+
+@vitality.command()
+@click.pass_context
+def set_all_datasets_public(ctx):
+    ctx.obj['meta_authorize'].set_full_access_to_datasets("public")
     return
