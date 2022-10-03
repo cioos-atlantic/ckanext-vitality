@@ -115,6 +115,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         #log.info("An user has been edited by %s", context['auth_user_obj'].name)
         ckan_user_info = toolkit.get_action('user_show')(context,data_dict)
         neo4j_user_info = self.meta_authorize.get_user(ckan_user_info['id'])
+        log.info(data_dict)
         # Unsure if username can be changed, but this can work around it if so
         if(data_dict['name'] != neo4j_user_info['username']):
             log.info("Username has been updated")
@@ -126,11 +127,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             gid = data_dict['gid']
             data_dict['plugin_extras'] = {"vitality": {"vitality_gid": gid}}
             self.meta_authorize.set_user_gid(ckan_user_info['id'], gid)
+
         return action(context, data_dict)
 
     @toolkit.chained_action
     def user_create(self, action, context, data_dict=None):
-        gid = None
+        gid = ''
         if('gid' in data_dict):
             gid = data_dict['gid']
         if 'plugin_extras' in data_dict:
