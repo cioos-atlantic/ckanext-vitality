@@ -1,6 +1,7 @@
 from json import tool
 import logging
 from re import search
+from tokenize import String
 import uuid
 import copy
 from . import constants
@@ -225,13 +226,12 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return action(context, data_dict)
 
     # Temp method while above issue is resolved
+    
     @toolkit.chained_action
     def package_create(self, action, context, data_dict=None):
         log.info("A package has been created")
         result = action(context, data_dict)
-        log.info(result)
-        log.info(data_dict)
-        self.add_dataset(result['id'])
+        self.add_dataset(data_dict)
         return result
 
     """
@@ -407,7 +407,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
             if(self.meta_authorize.get_dataset(dataset_id) == None):
                 log.info(dataset_id)
                 log.info("Dataset not in model. Returning")
-                #self.add_dataset(pkg_dict)
             elif(self.meta_authorize.is_unrestricted(dataset_id)):
                 log.info("Dataset is unrestricted")
             elif(self.meta_authorize.is_unrestricted_for_user(dataset_id, user_id)):
@@ -495,7 +494,6 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         return pkg_dict
 
     def add_dataset(self, pkg_dict):
-        log.info(pkg_dict)
         if(pkg_dict['type'] != 'dataset'):
             log.info("This is not a dataset. Returning")
             return pkg_dict
@@ -504,20 +502,25 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
         log.info('Adding ' + dataset_id)
         # Generate the default templates (full and min). For non-default templates use uuid to generate ID
 
-        self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
+        if 'title' in pkg_dict:
+            self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title'])
+        else:
+            self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title_translated']['en'])
 
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) > 0:
             log.info("Dataset already exists in Neo4j. Skipping")
         else:
             log.info('adding templates')
-            if 'notes' in pkg_dict and pkg_dict['notes']:
-                try:
+            try:
+                if 'notes' in pkg_dict and pkg_dict['notes']:
                     dataset_notes = json.loads(pkg_dict['notes'])
-                    self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
-                    self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
-                except ValueError as err:
-                    log.info("No description found")
+                else:
+                    dataset_notes = json.loads(pkg_dict['notes_translated'])
+                self.meta_authorize.set_dataset_description(dataset_id, "en", dataset_notes['en'])
+                self.meta_authorize.set_dataset_description(dataset_id, "fr", dataset_notes['fr'])
+            except ValueError as err:
+                log.info("No description found")
 
             # Generate an id, name, and description for the default templates (full and minimal)
             # TODO Create a better description based on the final
