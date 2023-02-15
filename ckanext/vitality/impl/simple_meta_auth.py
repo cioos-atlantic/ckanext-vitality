@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
+from ckanext.vitality.meta_authorize import MetaAuthorize
 
 log = logging.getLogger(__name__)
 
