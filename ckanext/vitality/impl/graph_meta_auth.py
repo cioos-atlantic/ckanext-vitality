@@ -2,10 +2,10 @@ import logging
 from operator import truediv
 from os import stat
 from re import template
-from ckanext.vitality_prototype.meta_authorize import MetaAuthorize
+from ckanext.vitality.meta_authorize import MetaAuthorize
 from neo4j import GraphDatabase
 import uuid 
-from ckanext.vitality_prototype import constants
+from ckanext.vitality import constants
 
 log = logging.getLogger(__name__)
 

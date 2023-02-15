@@ -2,7 +2,7 @@
 Code primarily adapted from vitality_model.py, which was used with paster commands for earlier versions of ckan
 """
 import click
-from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
+from ckanext.vitality.meta_authorize import MetaAuthorize, MetaAuthorizeType
 import logging
 import sys
 

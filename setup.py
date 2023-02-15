@@ -10,22 +10,24 @@ with open(path.join(here, 'README.rst')) as f:
     long_description = f.read()
 
 setup(
-    name='''ckanext-vitality_prototype''',
+    name='''ckanext-vitality''',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
     version='0.0.2',
 
-    description='''Vitality Prototype''',
+    description='''Vitality''',
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/cioos-atlantic/ckanext-vitality_prototype',
+    url='https://github.com/cioos-atlantic/ckanext-vitality',
 
     # Author details
-    author='''Alexandru Ianta''',
-    author_email='''aianta@cioosatlantic.ca''',
+    author='''Jared McLellan''',
+    author_email='''jared.mclellan@cioosatlantic.ca''',
+    #previous_author='''Alexandru Ianta''',
+    #previous_author_email='''aianta@cioosatlantic.ca''',
 
     # Choose your license
     license='AGPL',
@@ -80,10 +82,10 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points='''
         [ckan.plugins]
-            vitality_prototype=ckanext.vitality_prototype.plugin:Vitality_PrototypePlugin
+            vitality=ckanext.vitality.plugin:VitalityPlugin
 
         [paste.paster_command]
-            vitality = ckanext.vitality_prototype.commands.vitality_model:VitalityModel
+            vitality = ckanext.vitality.commands.vitality_model:VitalityModel
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan
