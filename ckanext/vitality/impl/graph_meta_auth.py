@@ -685,7 +685,48 @@ class _GraphMetaAuth(MetaAuthorize):
             templates = session.read_transaction(self.__read_all_templates, "Full")
             for template in templates:
                 session.write_transaction(self.__bind_role_to_template, role_id, template)
+    
+    def set_minimal_access_to_dataset(self, dataset_id):
+        """ 
+        Sets the template access to 'private' for all roles except admins and members of the dataset owner
 
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of the dataset
+        """
+        with self.driver.session() as session:
+            org_id = session.read_transaction(self.__get_dataset_owner, dataset_id)
+            org_roles = self.get_roles(org_id)
+            minimal_template = self.get_templates(dataset_id)["Minimal"]
+            all_roles = self.get_roles()
+            full_access_roles = ['admin']
+
+            for role in org_roles:
+                full_access_roles.append(org_roles[role])
+
+            for role in all_roles:
+                if role not in full_access_roles:
+                    session.write_transaction(self.__bind_role_to_template, all_roles[role], minimal_template)
+
+    @staticmethod
+    def __get_dataset_owner(tx, id):
+        """ 
+        Runs a query to return a the owner of the dataset with the given ID
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to get the owner organization of
+
+        Returns
+        -------
+        The organization ID that owns the dataset
+        """
+        records = tx.run("MATCH (d:dataset {id:'"+id+"'})<-[owns]-(o:organization) return o.id as id")
+        for record in records:
+            return record['id']
+        return None
 
     @staticmethod
     def __get_dataset(tx, id):

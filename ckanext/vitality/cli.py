@@ -126,7 +126,6 @@ def seed_groups(ctx):
 @click.pass_context
 def seed_orgs(ctx):
     print(ctx.obj['session'])
-    print("test")
     org_list = get_action('organization_list')(ctx.obj['session'], {'all_fields':True,'include_users':True, 'include_extras':True})
     print("Got {} organizations".format(len(org_list)))
 
@@ -143,5 +142,14 @@ def seed_orgs(ctx):
 @vitality.command()
 @click.pass_context
 def set_all_datasets_public(ctx):
+    print("test")
     ctx.obj['meta_authorize'].set_full_access_to_datasets("public")
+    return
+
+@vitality.command()
+@click.argument(u'dataset_id')
+@click.pass_context 
+def set_dataset_private(ctx, dataset_id):
+    print(dataset_id)
+    ctx.obj['meta_authorize'].set_minimal_access_to_dataset(dataset_id)
     return
