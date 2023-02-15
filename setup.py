@@ -15,7 +15,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # http://packaging.python.org/en/latest/tutorial.html#version
-    version='0.0.2',
+    version='0.0.3',
 
     description='''Vitality''',
     long_description=long_description,
@@ -85,7 +85,7 @@ setup(
             vitality=ckanext.vitality.plugin:VitalityPlugin
 
         [paste.paster_command]
-            vitality = ckanext.vitality.commands.vitality_model:VitalityModel
+            vitality = ckanext.vitality.cli.py:vitality
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan

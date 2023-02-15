@@ -126,7 +126,8 @@ def seed_groups(ctx):
 @click.pass_context
 def seed_orgs(ctx):
     print(ctx.obj['session'])
-    org_list = get_action('organization_list')(ctx.obj['session'], {'all_fields':True,'include_users':True})
+    print("test")
+    org_list = get_action('organization_list')(ctx.obj['session'], {'all_fields':True,'include_users':True, 'include_extras':True})
     print("Got {} organizations".format(len(org_list)))
 
     admin_list = ctx.obj['meta_authorize'].get_admins()
