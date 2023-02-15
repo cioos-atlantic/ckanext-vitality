@@ -8,7 +8,7 @@ nosetests --ckan \
           --nologcapture \
           --with-pylons=subdir/test.ini \
           --with-coverage \
-          --cover-package=ckanext.vitality_prototype \
+          --cover-package=ckanext.vitality \
           --cover-inclusive \
           --cover-erase \
           --cover-tests

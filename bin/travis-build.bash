@@ -32,7 +32,7 @@ cd ckan
 paster db init -c test-core.ini
 cd -
 
-echo "Installing ckanext-vitality_prototype and its requirements..."
+echo "Installing ckanext-vitality and its requirements..."
 python setup.py develop
 pip install -r dev-requirements.txt
 
