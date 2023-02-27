@@ -142,7 +142,6 @@ def seed_orgs(ctx):
 @vitality.command()
 @click.pass_context
 def set_all_datasets_public(ctx):
-    print("test")
     ctx.obj['meta_authorize'].set_full_access_to_datasets("public")
     return
 
@@ -150,6 +149,5 @@ def set_all_datasets_public(ctx):
 @click.argument(u'dataset_id')
 @click.pass_context 
 def set_dataset_private(ctx, dataset_id):
-    print(dataset_id)
     ctx.obj['meta_authorize'].set_minimal_access_to_dataset(dataset_id)
     return
