@@ -1,4 +1,7 @@
-from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
+"""
+Depreciated for CKAN 2.9 and later. Use cli.py instead
+"""
+from ckanext.vitality.meta_authorize import MetaAuthorize, MetaAuthorizeType
 import logging
 import sys
 

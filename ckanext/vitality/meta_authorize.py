@@ -52,8 +52,8 @@ class MetaAuthorize(object):
     @staticmethod
     def create(type, opts):
         # Do imports in create to avoid circular imports
-        from ckanext.vitality_prototype.impl.simple_meta_auth import _SimpleMetaAuth
-        from ckanext.vitality_prototype.impl.graph_meta_auth import  _GraphMetaAuth
+        from ckanext.vitality.impl.simple_meta_auth import _SimpleMetaAuth
+        from ckanext.vitality.impl.graph_meta_auth import  _GraphMetaAuth
 
         result = None
         if type is MetaAuthorizeType.SIMPLE:

@@ -2,7 +2,7 @@
 Code primarily adapted from vitality_model.py, which was used with paster commands for earlier versions of ckan
 """
 import click
-from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
+from ckanext.vitality.meta_authorize import MetaAuthorize, MetaAuthorizeType
 import logging
 import sys
 
@@ -126,7 +126,7 @@ def seed_groups(ctx):
 @click.pass_context
 def seed_orgs(ctx):
     print(ctx.obj['session'])
-    org_list = get_action('organization_list')(ctx.obj['session'], {'all_fields':True,'include_users':True})
+    org_list = get_action('organization_list')(ctx.obj['session'], {'all_fields':True,'include_users':True, 'include_extras':True})
     print("Got {} organizations".format(len(org_list)))
 
     admin_list = ctx.obj['meta_authorize'].get_admins()
@@ -143,4 +143,11 @@ def seed_orgs(ctx):
 @click.pass_context
 def set_all_datasets_public(ctx):
     ctx.obj['meta_authorize'].set_full_access_to_datasets("public")
+    return
+
+@vitality.command()
+@click.argument(u'dataset_id')
+@click.pass_context 
+def set_dataset_private(ctx, dataset_id):
+    ctx.obj['meta_authorize'].set_minimal_access_to_dataset(dataset_id)
     return

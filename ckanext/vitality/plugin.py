@@ -8,7 +8,7 @@ from . import constants
 import json
 import datetime
 
-from ckanext.vitality_prototype.meta_authorize import MetaAuthorize, MetaAuthorizeType
+from ckanext.vitality.meta_authorize import MetaAuthorize, MetaAuthorizeType
 
 from pprint import pprint
 
@@ -17,13 +17,13 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 import ckan.plugins.interfaces as interfaces
 from ckan.common import config
-import ckanext.vitality_prototype.cli as cli
+import ckanext.vitality.cli as cli
 #TODO add variable for address
 
 
 log = logging.getLogger(__name__)
 
-class Vitality_PrototypePlugin(plugins.SingletonPlugin):
+class VitalityPlugin(plugins.SingletonPlugin):
     """ 
     A CKAN plugin for creating a data registry.
 
@@ -56,7 +56,7 @@ class Vitality_PrototypePlugin(plugins.SingletonPlugin):
     # ITemplateHelpers
     def get_helpers(self):
         return {
-            'vitality_prototype_get_minimum_fields': lambda: constants.MINIMUM_FIELDS
+            'vitality_get_minimum_fields': lambda: constants.MINIMUM_FIELDS
         }
 
     
