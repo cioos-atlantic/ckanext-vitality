@@ -1548,9 +1548,13 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         # Check to see if role already is connected to a template from that dataset, if so then delete edge
         # Can use this one without the dataset ID (unique role ids)
+        """
+        # Good for avoiding extra computation if the edge already exists, but in the case where the edge already exists
+        # and an extra edge for a different template exists, it skips deleting the extra template edge
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})-[u:uses_template]->(t:template {id:'"+template_id+"'}) RETURN u")
         for record in records:
             return
+        """
         tx.run("MATCH (t:template {id:'"+template_id+"'})<-[:has_template]-(d:dataset), (r:role {id:'"+role_id+"'})-[u:uses_template]->(:template)<-[:has_template]-(d) DELETE u")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (r)-[:uses_template]->(t)")
         return
