@@ -292,6 +292,7 @@ class VitalityPlugin(plugins.SingletonPlugin):
             'user': config.get('ckan.vitality.neo4j.user', "neo4j"),
             'password': config.get('ckan.vitality.neo4j.password', "password")
         })
+        self.default_dataset_access = config.get('ckan.vitality.default_access', "Minimal")
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
@@ -557,8 +558,11 @@ class VitalityPlugin(plugins.SingletonPlugin):
         
             # Always add access for public and admin roles
             # TODO Discuss change default for public?
-            self.meta_authorize.set_template_access('public', minimal_id)
             self.meta_authorize.set_template_access('admin', full_id)
+            if self.default_dataset_access == "Full":
+                self.meta_authorize.set_template_access('public', full_id)
+            else:
+                self.meta_authorize.set_template_access('public', minimal_id)
 
             # Add access for any roles in the organization
             for role in self.meta_authorize.get_roles(pkg_dict['owner_org']).values():
