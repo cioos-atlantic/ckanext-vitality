@@ -37,6 +37,7 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__write_dataset, dataset_id, dname)
             session.write_transaction(self.__bind_dataset_to_org, owner_id, dataset_id)
 
+
     def add_group(self, group_id, users):
         """
         Adds a group to the database and binds users to membership
@@ -199,6 +200,21 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         with self.driver.session() as session:
             session.write_transaction(self.__delete_dataset, dataset_id)
+
+    def delete_harvest(self, harvest_id):
+        """
+        Deletes all datasets associated with a specific harvest id
+        Triggered when clearing a harvest
+        
+        Parameters
+        ----------
+        harvest_id : string
+            The id/uuid of the harvest to delete associated datasets
+        """
+        with self.driver.session() as session:
+            records = session.read_transaction(self.__read_harvest_datasets, harvest_id)
+            for record in records:
+                self.delete_dataset(record)
 
     def delete_organization(self, org_id):
         """
@@ -556,6 +572,21 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__set_dataset_name, dataset_id, dataset_name)
             
+    
+    def set_dataset_harvest_id(self, dataset_id, harvest_id):
+        """ 
+        Sets the harvest source id of a dataset to the provided string
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to assign a name to
+        harvest_id : string
+            The harvest_id to be applied to the dataset
+        """
+        with self.driver.session() as session:
+            session.write_transaction(self.__set_harvest_id, dataset_id, harvest_id)
+
     def set_template_access(self, role_id, template_id):
         """ 
         Sets a 'uses_template' relationship between a given role and template for a dataset
@@ -1055,6 +1086,25 @@ class _GraphMetaAuth(MetaAuthorize):
         return results
 
     @staticmethod
+    def __read_harvest_datasets (tx, harvest_id):
+        """ 
+        Returns all datasets associated with the given harvest id
+
+        Parameters
+        ----------
+        harvest_id : string
+            The id of the harvest associated with the datasets
+
+        Returns
+        -------
+        A list of dataset IDs (String)
+        """
+        result = []
+        for record in tx.run("MATCH (d:dataset {harvest_source:'"+ harvest_id +"'}) RETURN d.id AS id"):
+            result.append(record['id'])
+        return result
+
+    @staticmethod
     def __read_users(tx):
         """ 
         Returns all users in the database
@@ -1386,6 +1436,25 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
+    def __set_harvest_id(tx, id, harvest_id):
+        """ 
+        Sets the harvest source id of a dataset with the given id
+        If the dataset already has a harvest id it will be overwritten
+
+        Parameters
+        ----------
+        id : string
+            The id/uuid of the dataset to set a new name for
+        harvest_id : string
+            The new harvest source id for the dataset
+
+        Returns
+        -------
+        None
+        """
+        tx.run("MATCH (d:dataset {id:'" + id + "'}) SET d.harvest_source ='" + harvest_id + "'")
+
+    @staticmethod
     def __set_user_gid(tx, id, gid):
         """ 
         Sets the Google ID (gid) of a user with the given id
@@ -1548,9 +1617,13 @@ class _GraphMetaAuth(MetaAuthorize):
         """
         # Check to see if role already is connected to a template from that dataset, if so then delete edge
         # Can use this one without the dataset ID (unique role ids)
+        """
+        # Good for avoiding extra computation if the edge already exists, but in the case where the edge already exists
+        # and an extra edge for a different template exists, it skips deleting the extra template edge
         records = tx.run("MATCH (r:role {id:'"+role_id+"'})-[u:uses_template]->(t:template {id:'"+template_id+"'}) RETURN u")
         for record in records:
             return
+        """
         tx.run("MATCH (t:template {id:'"+template_id+"'})<-[:has_template]-(d:dataset), (r:role {id:'"+role_id+"'})-[u:uses_template]->(:template)<-[:has_template]-(d) DELETE u")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (t:template {id:'"+template_id+"'}) CREATE (r)-[:uses_template]->(t)")
         return

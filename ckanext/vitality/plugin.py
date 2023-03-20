@@ -18,6 +18,7 @@ import ckan.plugins.toolkit as toolkit
 import ckan.plugins.interfaces as interfaces
 from ckan.common import config
 import ckanext.vitality.cli as cli
+
 #TODO add variable for address
 
 
@@ -73,10 +74,17 @@ class VitalityPlugin(plugins.SingletonPlugin):
             "package_update" : self.package_update,
             "package_create" : self.package_create,
             "package_delete" : self.package_delete,
-            "user_show" : self.user_show
+            "user_show" : self.user_show,
+            "harvest_source_clear" : self.harvest_source_clear
         }
 
-        
+    # Testing to try to hook into the harvester clear
+    @toolkit.chained_action
+    def harvest_source_clear(self, action, context, data_dict=None):
+        log.info("Clearing harvest")
+        result = action(context, data_dict)
+        self.meta_authorize.delete_harvest(data_dict['id'])
+        return result
 
     # Unused right now, but useful for logging
     @toolkit.chained_action
@@ -284,6 +292,7 @@ class VitalityPlugin(plugins.SingletonPlugin):
             'user': config.get('ckan.vitality.neo4j.user', "neo4j"),
             'password': config.get('ckan.vitality.neo4j.password', "password")
         })
+        self.default_dataset_access = config.get('ckan.vitality.default_access', "Minimal")
         
     # IPackageController -> When displaying a dataset
     def after_show(self,context, pkg_dict):
@@ -303,7 +312,7 @@ class VitalityPlugin(plugins.SingletonPlugin):
         log.info("This is not before index, filtering")
         # Decode unicode id...
         dataset_id = pkg_dict['id']
-        
+
         # Check to see if the dataset has just been created
         #if(self.meta_authorize.get_dataset(dataset_id) == None):
             #log.info("Dataset not in model. Adding.")
@@ -507,11 +516,16 @@ class VitalityPlugin(plugins.SingletonPlugin):
         else:
             self.meta_authorize.add_dataset(dataset_id, pkg_dict['owner_org'], dname=pkg_dict['title_translated']['en'])
 
+
+        if 'h_source_id' in pkg_dict:
+            log.info("Adding harvest source id")
+            self.meta_authorize.set_dataset_harvest_id(dataset_id, pkg_dict['h_source_id'])
+
         templates = self.meta_authorize.get_templates(dataset_id)
         if len(templates) > 0:
             log.info("Dataset already exists in Neo4j. Skipping")
         else:
-            log.info('adding templates')
+            log.info('Adding templates')
             try:
                 if 'notes' in pkg_dict and pkg_dict['notes']:
                     dataset_notes = json.loads(pkg_dict['notes'])
@@ -544,8 +558,11 @@ class VitalityPlugin(plugins.SingletonPlugin):
         
             # Always add access for public and admin roles
             # TODO Discuss change default for public?
-            self.meta_authorize.set_template_access('public', minimal_id)
             self.meta_authorize.set_template_access('admin', full_id)
+            if self.default_dataset_access == "Full":
+                self.meta_authorize.set_template_access('public', full_id)
+            else:
+                self.meta_authorize.set_template_access('public', minimal_id)
 
             # Add access for any roles in the organization
             for role in self.meta_authorize.get_roles(pkg_dict['owner_org']).values():
