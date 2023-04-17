@@ -587,6 +587,16 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__set_harvest_id, dataset_id, harvest_id)
 
+    def set_element_access_for_template(self, dataset_id, template_name, element_name):
+        with self.driver.session() as session:
+            elements = session.read_transaction(self.__read_elements, dataset_id)
+            templates = session.read_transaction(self.__read_templates, dataset_id)
+            
+            if(template_name in templates and element_name in elements):
+                session.write_transaction(self.__bind_fields_to_template, templates[template_name], {element_name : elements[element_name]}, overwrite=False)
+            else:
+                log.info("Provided template name or element name does not exist")
+
     def set_template_access(self, role_id, template_id):
         """ 
         Sets a 'uses_template' relationship between a given role and template for a dataset
@@ -1528,25 +1538,33 @@ class _GraphMetaAuth(MetaAuthorize):
         return
 
     @staticmethod
-    def __bind_fields_to_template(tx, template_id, whitelist):  
+    def __bind_fields_to_template(tx, template_id, whitelist, overwrite = True):  
         """ 
-        Adds a list of elements to a template's visibility permissions
+        Sets a list of elements to a template's visibility permissions
         Deletes all prior visibility relationships the template has
 
         Parameters
         ----------
         template_id : string
             The id/uuid of the template to set new visibility relationships for
-        whitelist : list[string]
-            A list of element IDs that will be visible to the template
+        whitelist : dict
+            A dict of elements that will be visible to the template with the name as the key and id as the value
+        overwrite : bool
+            Whether to overwrite all existing visibility relationships or to append
 
         Returns
         -------
         None
         """
         # First remove all existing 'can_see' relationships between the template, dataset and its elements
-        tx.run("MATCH (e:element)<-[c:can_see]-(t:template {id:'"+template_id+"'}) DELETE c")
+        if overwrite:
+            tx.run("MATCH (e:element)<-[c:can_see]-(t:template {id:'"+template_id+"'}) DELETE c")
         for name,id in whitelist.items():
+            if not overwrite:
+                records = tx.run("MATCH (e:element {id:'"+id+"'})<-[c:can_see]-(t:template {id:'"+template_id+"'}) return c")
+                exists = len(list(records))
+                if exists:
+                    continue
             result = tx.run("MATCH (e:element {id:'"+id+"'}), (t:template {id:'"+template_id+"'}) CREATE (t)-[:can_see]->(e)")
         return
 

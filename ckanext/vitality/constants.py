@@ -90,14 +90,13 @@ DATASET_FIELDS = [
         "xml_location_url",
         "organization/name",
         "extras_eov_restricted",
-        "extras_keywords_restricted/en",
-        "extras_keywords_restricted/fr",
+        "vocab_keywords_restricted/en",
+        "vocab_keywords_restricted/fr",
         "mark_restricted"
     ]
 
 PUBLIC_FIELDS = [
     "id",
-    "resources",
     "type",
     "name",
     "state",
@@ -136,8 +135,8 @@ PUBLIC_FIELDS = [
     "metadata-reference-date",
     "owner_org",
     "extras_eov_restricted",
-    "extras_keywords_restricted/en",
-    "extras_keywords_restricted/fr",
+    "vocab_keywords_restricted/en",
+    "vocab_keywords_restricted/fr",
     "mark_restricted"
 ]
 

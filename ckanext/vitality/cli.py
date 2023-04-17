@@ -151,3 +151,11 @@ def set_all_datasets_public(ctx):
 def set_dataset_private(ctx, dataset_id):
     ctx.obj['meta_authorize'].set_minimal_access_to_dataset(dataset_id)
     return
+
+@vitality.command()
+@click.argument(u'dataset_id')
+@click.argument(u'template_name')
+@click.argument(u'element_name')
+@click.pass_context 
+def set_element_access_for_template(ctx, dataset_id, template_name, element_name):
+    ctx.obj['meta_authorize'].set_element_access_for_template(dataset_id, template_name, element_name)
