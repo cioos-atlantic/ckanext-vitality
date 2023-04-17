@@ -201,6 +201,30 @@ class _GraphMetaAuth(MetaAuthorize):
         with self.driver.session() as session:
             session.write_transaction(self.__delete_dataset, dataset_id)
 
+    def delete_element_access_for_template(self, dataset_id, template_name, element_name):
+        """ 
+        Deletes a visibility relationship between an element and a template
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to change visibility settings for
+        template_name : string
+            The name of the template to update
+        element_name : string
+            The name of the element to update
+        """
+        with self.driver.session() as session:
+            # Should not ever delete an element from full otherwise it will no longer be associated with the dataset
+            if(template_name != "Full"):
+                elements = session.read_transaction(self.__read_elements, dataset_id)
+                templates = session.read_transaction(self.__read_templates, dataset_id)
+                
+                if(template_name in templates and element_name in elements):
+                    session.write_transaction(self.__detach_fields_from_template, templates[template_name], elements[element_name])
+            else:
+                log.warn("Cannot detach element from Full template. Exiting...")
+
     def delete_harvest(self, harvest_id):
         """
         Deletes all datasets associated with a specific harvest id
@@ -588,14 +612,30 @@ class _GraphMetaAuth(MetaAuthorize):
             session.write_transaction(self.__set_harvest_id, dataset_id, harvest_id)
 
     def set_element_access_for_template(self, dataset_id, template_name, element_name):
+        """ 
+        Creates a new visibility relationship between an element and a template (unless one already exists)
+
+        Parameters
+        ----------
+        dataset_id : string
+            The id/uuid of a dataset to change visibility settings for
+        template_name : string
+            The name of the template to update
+        element_name : string
+            The name of the element to update
+        """
         with self.driver.session() as session:
-            elements = session.read_transaction(self.__read_elements, dataset_id)
-            templates = session.read_transaction(self.__read_templates, dataset_id)
             
-            if(template_name in templates and element_name in elements):
-                session.write_transaction(self.__bind_fields_to_template, templates[template_name], {element_name : elements[element_name]}, overwrite=False)
+            if(template_name != "Full"):
+                elements = session.read_transaction(self.__read_elements, dataset_id)
+                templates = session.read_transaction(self.__read_templates, dataset_id)
+                
+                if(template_name in templates and element_name in elements):
+                    session.write_transaction(self.__bind_fields_to_template, templates[template_name], {element_name : elements[element_name]}, overwrite=False)
+                else:
+                    log.info("Provided template name or element name does not exist")
             else:
-                log.info("Provided template name or element name does not exist")
+                log.info("Full templates already connected to every element in the dataset")
 
     def set_template_access(self, role_id, template_id):
         """ 
@@ -1736,6 +1776,30 @@ class _GraphMetaAuth(MetaAuthorize):
         # Check to see if user is already given a role in the organization, and if so delete those edges
         tx.run("MATCH (r:role {id:'"+role_id+"'})<-[:manages_role]-(o:organization), (u:user {id:'"+user_id+"'})-[h:has_role]->(:role)<-[:manages_role]-(o) DELETE h")
         result = tx.run("MATCH (r:role {id:'"+role_id+"'}), (u:user {id:'"+user_id+"'}) CREATE (u)-[:has_role]->(r)")
+        return
+
+    @staticmethod
+    def __detach_fields_from_template(tx, template_id, element_id):  
+        """ 
+        Sets a list of elements to a template's visibility permissions
+        Deletes all prior visibility relationships the template has
+
+        Parameters
+        ----------
+        template_id : string
+            The id/uuid of the template to set new visibility relationships for
+        element_id : string
+            The id/uuid of the element to detach from the template
+
+        Returns
+        -------
+        None
+        """
+        # First remove all existing 'can_see' relationships between the template, dataset and its elements
+        records = tx.run("MATCH (e:element {id:'"+element_id+"'})<-[c:can_see]-(t:template {id:'"+template_id+"'}) return c")
+        exists = len(list(records))
+        if exists:
+            result = tx.run("MATCH (e:element {id:'"+element_id+"'})<-[c:can_see]-(t:template {id:'"+template_id+"'}) delete c")
         return
 
     @staticmethod

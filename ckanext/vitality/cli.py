@@ -159,3 +159,12 @@ def set_dataset_private(ctx, dataset_id):
 @click.pass_context 
 def set_element_access_for_template(ctx, dataset_id, template_name, element_name):
     ctx.obj['meta_authorize'].set_element_access_for_template(dataset_id, template_name, element_name)
+
+    
+@vitality.command()
+@click.argument(u'dataset_id')
+@click.argument(u'template_name')
+@click.argument(u'element_name')
+@click.pass_context 
+def delete_element_access_for_template(ctx, dataset_id, template_name, element_name):
+    ctx.obj['meta_authorize'].delete_element_access_for_template(dataset_id, template_name, element_name)
