@@ -1,0 +1,11 @@
+<section class="dataset-map-section {% if g.ckan_base_version.startswith('2.0') %}dataset-map-section-20x{% endif %}">
+    <h3>{{ _('Dataset extent') }}</h3>
+    {% if extent == 'null' %}
+        <p>
+            {% trans %}<h5>The spatial data of this dataset is restricted.</h5>
+            Contact the dataset owner to request access{% endtrans %}
+        </p>
+    {% else %}
+        {% snippet "spatial/snippets/dataset_map_base.html", extent=extent, max_zoom=max_zoom %}
+    {% endif %}
+</section>
