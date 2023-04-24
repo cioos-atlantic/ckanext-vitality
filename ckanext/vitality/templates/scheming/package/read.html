@@ -5,8 +5,8 @@
     {{ super() }}
     {% if not (pkg.xml_location_url) %}
     <p>
-        <h5>Some of the metadata of this dataset is restricted and may not be viewable for you</h3>
-        Contact the dataset owner to request access
+        {% trans %}<h5>Some of the metadata for this dataset is restricted and may not be viewable to you</h5>
+        Contact the dataset owner to request access{% endtrans %}
     </p>
     {% endif %}
 {% endblock %}
